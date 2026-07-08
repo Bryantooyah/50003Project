@@ -1,0 +1,289 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  color: #123d24;
+  background: #f3f5ef;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  min-height: 100vh;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 40px;
+  border-bottom: 1px solid #d7dfd2;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo {
+  width: 44px;
+  height: 44px;
+  border: 2px solid #123d24;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+}
+
+.brand h1 {
+  margin: 0;
+  letter-spacing: 0.18rem;
+}
+
+.brand p {
+  margin: 4px 0 0;
+  color: #5c6e60;
+}
+
+.project-pill {
+  border: 2px solid #123d24;
+  border-radius: 999px;
+  padding: 12px 28px;
+  font-weight: 700;
+}
+
+.hero {
+  padding: 40px;
+}
+
+.hero h2 {
+  margin: 0 0 12px;
+  font-size: 36px;
+}
+
+.hero p {
+  max-width: 900px;
+  color: #516454;
+  line-height: 1.6;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+  padding: 0 40px 40px;
+}
+
+.left-column,
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card,
+.empty-state,
+.recommendation-card {
+  background: #ffffff;
+  border: 1px solid #dce4d8;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 8px 24px rgba(16, 61, 36, 0.06);
+}
+
+.card h2,
+.empty-state h2,
+.recommendation-card h3 {
+  margin-top: 0;
+}
+
+.muted {
+  color: #617062;
+  line-height: 1.5;
+}
+
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #cbd8c8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font: inherit;
+  background: #fbfcfa;
+  color: #123d24;
+}
+
+textarea {
+  min-height: 220px;
+  resize: vertical;
+  margin-top: 12px;
+}
+
+button {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-weight: 700;
+  background: #123d24;
+  color: white;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: #e5ece1;
+  color: #123d24;
+}
+
+.form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  gap: 12px;
+}
+
+.warning {
+  color: #b35b00;
+  font-weight: 700;
+}
+
+.success {
+  color: #1d7f3f;
+  font-weight: 700;
+}
+
+.message {
+  margin: 0 40px 24px;
+  background: #fff7db;
+  border: 1px solid #e6c86f;
+  color: #6c4b00;
+  padding: 14px 18px;
+  border-radius: 12px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+
+.summary-box {
+  border: 1px solid #dce4d8;
+  border-radius: 14px;
+  padding: 16px;
+  background: #f7faf5;
+}
+
+.summary-box span {
+  display: block;
+  color: #617062;
+  text-transform: capitalize;
+  margin-bottom: 8px;
+}
+
+.summary-box strong {
+  font-size: 28px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 14px;
+  border-bottom: 1px solid #e3e8e0;
+  vertical-align: top;
+}
+
+th {
+  color: #405542;
+  background: #f7faf5;
+}
+
+.badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.badge.low {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.badge.medium {
+  background: #fff3cd;
+  color: #7a5600;
+}
+
+.badge.high {
+  background: #fdecea;
+  color: #9f1d1d;
+}
+
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recommendation-header,
+.recommendation-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.recommendation-actions {
+  margin-top: 16px;
+  justify-content: flex-start;
+}
+
+.status-text {
+  font-weight: 700;
+  color: #123d24;
+}
+
+.empty-state {
+  min-height: 300px;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .navbar {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+}
