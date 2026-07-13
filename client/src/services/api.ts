@@ -14,7 +14,20 @@ export async function analyseWritingSample(
   studentId: string,
   sampleText: string
 ): Promise<AnalysisResult> {
-  await delay(800);
+  await delay(800); 
+
+  const response = await fetch(`http://localhost:3001/api/analyse`,
+    {
+      method: 'POST',
+      body: `id=${studentId}&text=${sampleText}`,
+      headers: {
+        'Content-type': 'application/x-www-form-urlencoded'
+      }
+    }
+  )
+
+  const data = await response.json();
+  console.log(data);
 
   return {
     ...mockAnalysisResult,
