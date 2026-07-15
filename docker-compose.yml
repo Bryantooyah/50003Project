@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dial
+      POSTGRES_PASSWORD: dial
+      POSTGRES_DB: dial
+    ports:
+      - "5432:5432"
+    volumes:
+      - dial-db-data:/var/lib/postgresql/data
+
+volumes:
+  dial-db-data:
