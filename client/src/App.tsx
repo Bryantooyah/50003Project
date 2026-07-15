@@ -12,6 +12,10 @@ import {
 } from "./services/api";
 import type { AnalysisResult, Recommendation, Student } from "./types";
 import "./index.css";
+import LoginPage from "./components/LoginPage";
+import { checkBackendHealth, analyseWithLLM } from "./services/backendApi";
+import ErrorPatternDashboard from "./components/ErrorPatternDashboard";
+
 
 export default function App() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -23,6 +27,10 @@ export default function App() {
   const [isAnalysing, setIsAnalysing] = useState(false);
   const [isGeneratingRecommendations, setIsGeneratingRecommendations] =
     useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState<"therapist" | "admin" | null>(null);
+  const [backendStatus, setBackendStatus] = useState<string>("Checking backend...");
+  const [llmOutput, setLlmOutput] = useState<string>("");
 
   useEffect(() => {
     async function loadStudents() {
@@ -32,6 +40,21 @@ export default function App() {
 
     loadStudents();
   }, []);
+
+  useEffect(() => {
+  async function loadBackendStatus() {
+    try {
+      const health = await checkBackendHealth();
+      setBackendStatus(`Backend: ${health.status}, Database: ${health.db}`);
+    } catch {
+      setBackendStatus("Backend unavailable");
+    }
+  }
+
+  loadBackendStatus();
+}, []);
+
+
 
   const selectedStudent = students.find(
     (student) => student.id === selectedStudentId
@@ -60,9 +83,16 @@ export default function App() {
 
     try {
       setIsAnalysing(true);
+
       const result = await analyseWritingSample(selectedStudentId, sampleText);
       setAnalysis(result);
       setRecommendations([]);
+      try {
+            const output = await analyseWithLLM(sampleText);
+            setLlmOutput(output);
+          } catch {
+            setLlmOutput("LLM backend analysis unavailable. Showing mock structured analysis only.");
+          }
     } catch (error) {
       setMessage("Analysis failed. Please try again.");
     } finally {
@@ -75,6 +105,9 @@ export default function App() {
       setMessage("Generate an analysis before requesting recommendations.");
       return;
     }
+    const generated = await generateRecommendations(analysis);
+    setRecommendations(generated);
+    setMessage("Intervention recommendations generated.");
 
     try {
       setIsGeneratingRecommendations(true);
@@ -103,9 +136,35 @@ export default function App() {
     setMessage(`Recommendation ${status}. Feedback signal logged.`);
   };
 
+  if (!isLoggedIn) {
+    return (
+      <LoginPage
+        onLogin={(role) => {
+          setUserRole(role);
+          setIsLoggedIn(true);
+        }}
+      />
+    );
+  }
+
   return (
     <main>
-      <Navbar />
+      <div className="top-bar">
+        <Navbar />
+
+        <div className="session-controls">
+          <span>Logged in as {userRole}</span>
+          <button
+            className="logout-button"
+            onClick={() => {
+              setIsLoggedIn(false);
+              setUserRole(null);
+            }}
+          >
+            Log Out
+          </button>
+        </div>
+      </div>
 
       <section className="hero">
         <h2>Error Pattern Analyzer & Intervention Recommendation Engine</h2>
@@ -114,6 +173,8 @@ export default function App() {
           demo uses mock analysis data while the backend API is under
           development.
         </p>
+
+        <p className="muted">{backendStatus}</p>
       </section>
 
       {message && <div className="message">{message}</div>}
@@ -165,6 +226,18 @@ export default function App() {
             <>
               <ErrorSummary analysis={analysis} />
               <ErrorTable errors={analysis.errors} />
+              <ErrorPatternDashboard analysis={analysis} />
+              {llmOutput && (
+                  <section className="card">
+                    <h2>AI Analysis Notes</h2>
+                    <p className="muted">
+                      Response generated from the backend LLM analysis endpoint.
+                    </p>
+                    <div className="llm-output">
+                      {llmOutput}
+                    </div>
+                  </section>
+                )}
 
               <section className="card">
                 <h2>Intervention Recommendations</h2>
@@ -173,13 +246,8 @@ export default function App() {
                   categories and severity.
                 </p>
 
-                <button
-                  onClick={handleGenerateRecommendations}
-                  disabled={isGeneratingRecommendations}
-                >
-                  {isGeneratingRecommendations
-                    ? "Generating..."
-                    : "Generate Recommendations"}
+                <button className="primary-button" onClick={handleGenerateRecommendations}>
+                  Generate Recommendations
                 </button>
               </section>
 
