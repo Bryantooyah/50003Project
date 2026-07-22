@@ -1,0 +1,69 @@
+{
+  "datasetName": "Writing Edit and Diagram 1",
+  "answerKey": [
+    {
+      "questionNo": 1,
+      "question": "he ran",
+      "expectedAnswer": "He ran.",
+      "mark": 1
+    },
+    {
+      "questionNo": 2,
+      "question": "Fox hunts",
+      "expectedAnswer": "Fox hunts.",
+      "mark": 1
+    },
+    {
+      "questionNo": 3,
+      "question": "i sang,",
+      "expectedAnswer": "I sang.",
+      "mark": 1
+    },
+    {
+      "questionNo": 4,
+      "question": "Pam Swims.",
+      "expectedAnswer": "Pam swims.",
+      "mark": 1
+    },
+    {
+      "questionNo": 5,
+      "question": "tom Hops",
+      "expectedAnswer": "Tom hops.",
+      "mark": 1
+    }
+  ],
+  "samples": [
+    {
+      "id": "sample-001",
+      "displayName": "Student Sample 001",
+      "fileName": "student-121606.jpg",
+      "fileType": "image",
+      "datasetType": "Edit & Diagram 1",
+      "expectedMaxMark": 5
+    },
+    {
+      "id": "sample-002",
+      "displayName": "Student Sample 002",
+      "fileName": "Student-141683.jpg",
+      "fileType": "image",
+      "datasetType": "Edit & Diagram 1",
+      "expectedMaxMark": 5
+    },
+    {
+      "id": "sample-003",
+      "displayName": "Student Sample 003",
+      "fileName": "Student-153072.jpg",
+      "fileType": "image",
+      "datasetType": "Edit & Diagram 1",
+      "expectedMaxMark": 5
+    },
+    {
+      "id": "sample-004",
+      "displayName": "Student Sample 004",
+      "fileName": "Student-167485.pdf",
+      "fileType": "pdf",
+      "datasetType": "Edit & Diagram 1",
+      "expectedMaxMark": 5
+    }
+  ]
+}
