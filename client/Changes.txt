@@ -1,0 +1,31 @@
+UC2 backend work needed:
+
+The UC2 frontend is now implemented for the therapist-facing writing sample workflow. It supports student selection, client writing sample selection/preview, answer key display, therapist-reviewed transcription input, validation, analysis submission, and display of AI notes plus structured detected error annotations.
+
+Currently, the frontend uses a local sample registry for demo/testing. Backend should replace this with proper API/database-backed sample management.
+
+Suggested backend tasks:
+
+1. Implement GET /api/writing-samples
+Return all available writing samples with:
+id, displayName, fileType, fileUrl, datasetType, expectedMaxMark.
+
+2. Implement GET /api/writing-samples/:id
+Return the selected sample with:
+file URL, metadata, therapist-verified transcription, and answer key.
+
+3. Serve writing sample files from backend
+Store files under server/uploads/writing-samples and expose them through Express static serving, e.g. /uploads/writing-samples/:filename.
+
+4. Update POST /api/analyse
+Accept studentId, sampleId, and text. Return structured detected errors:
+originalText, suggestedCorrection, category, severity, explanation.
+Also return llmOutput from the LLM.
+
+5. Store analysis results in database
+Suggested tables:
+analysis_results: id, student_id, writing_sample_id, sample_text, llm_output, created_at.
+detected_errors: id, analysis_result_id, original_text, suggested_correction, category, severity, explanation.
+
+6. Future extension
+Add OCR support so image/PDF samples can be converted into editable text before therapist review.
