@@ -1,16 +1,16 @@
 import type { Student } from "../types";
 
-type Props = {
+interface StudentSelectorProps {
   students: Student[];
   selectedStudentId: string;
   onSelect: (studentId: string) => void;
-};
+}
 
 export default function StudentSelector({
   students,
   selectedStudentId,
   onSelect,
-}: Props) {
+}: StudentSelectorProps) {
   return (
     <section className="card">
       <h2>Select Student</h2>
@@ -25,7 +25,7 @@ export default function StudentSelector({
         <option value="">Choose a student</option>
         {students.map((student) => (
           <option key={student.id} value={student.id}>
-            {student.name} — {student.level}
+            {student.name} — Age {student.age}
           </option>
         ))}
       </select>

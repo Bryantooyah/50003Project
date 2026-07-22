@@ -6,6 +6,10 @@ import type {
   Student,
 } from "../types";
 
+import type { WritingSampleManifest } from "../types";
+
+const BACKEND_URL = "http://localhost:3001";
+
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -15,14 +19,29 @@ export async function getStudents(): Promise<Student[]> {
   return mockStudents;
 }
 
+export async function checkBackendHealth(): Promise<{
+  status: string;
+  db: string;
+}> {
+  const response = await fetch(`${BACKEND_URL}/api/health`);
+
+  if (!response.ok) {
+    throw new Error("Backend health check failed");
+  }
+
+  return response.json();
+}
+
 export async function analyseWritingSample(
   studentId: string,
   sampleText: string
 ): Promise<AnalysisResult> {
-  await delay(800);
+  await delay(600);
+
+  let llmOutput = "";
 
   try {
-    const response = await fetch("http://localhost:3001/api/analyse", {
+    const response = await fetch(`${BACKEND_URL}/api/analyse`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -37,13 +56,16 @@ export async function analyseWritingSample(
       throw new Error("Backend analysis failed");
     }
 
-    const data: { output: string } = await response.json();
-    console.log("Backend LLM output:", data.output);
+    const data: { output?: string } = await response.json();
+    llmOutput = data.output ?? "";
   } catch (error) {
     console.warn(
       "Backend LLM unavailable. Falling back to mock structured analysis.",
       error
     );
+
+    llmOutput =
+      "Backend analysis endpoint was unavailable, so the frontend displayed fallback structured mock analysis for demo purposes.";
   }
 
   return {
@@ -52,13 +74,14 @@ export async function analyseWritingSample(
     studentId,
     sampleText,
     createdAt: new Date().toISOString(),
+    llmOutput,
   };
 }
 
 export async function generateRecommendations(
   analysis: AnalysisResult
 ): Promise<Recommendation[]> {
-  await delay(600);
+  await delay(500);
 
   const recommendations: Recommendation[] = [];
 
@@ -84,7 +107,7 @@ export async function generateRecommendations(
     addRecommendation(
       "phonological",
       "Phonics Discrimination Drill",
-      "The student shows sound-based spelling errors, suggesting difficulty mapping sounds to written forms.",
+      "The student shows sound-based errors, suggesting difficulty mapping sounds to written forms.",
       "Use minimal-pair word cards and ask the student to identify, pronounce, and spell similar-sounding words.",
       analysis.summary.phonological
     );
@@ -104,7 +127,7 @@ export async function generateRecommendations(
     addRecommendation(
       "morphological",
       "Word Form Awareness Practice",
-      "The student may need support with word forms, prefixes, suffixes, or tense-related changes.",
+      "The student may need support with suffixes, tense endings, or word form changes.",
       "Use base words and ask the student to form related words using prefixes, suffixes, or tense endings.",
       analysis.summary.morphological
     );
@@ -126,7 +149,7 @@ export async function generateRecommendations(
       title: "General Writing Review",
       targetCategory: "other",
       rationale:
-        "The writing sample may contain general clarity or expression issues that do not fall neatly into one category.",
+        "The writing sample contains issues that require general review and therapist judgement.",
       activity:
         "Ask the student to reread the writing sample, identify unclear parts, and rewrite one improved version.",
       priority: "low",
@@ -135,4 +158,13 @@ export async function generateRecommendations(
   }
 
   return recommendations;
+}
+export async function getWritingSampleManifest(): Promise<WritingSampleManifest> {
+  const response = await fetch("/writing-samples/manifest.json");
+
+  if (!response.ok) {
+    throw new Error("Failed to load writing sample manifest.");
+  }
+
+  return response.json();
 }

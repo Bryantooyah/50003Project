@@ -12,7 +12,7 @@ backend.
 ## 1. Install dependencies
 
 ```bash
-cd client && npm install
+cd client && npm install 
 cd ../server && npm install
 ```
 

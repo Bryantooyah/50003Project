@@ -29,6 +29,8 @@ export type AnalysisResult = {
   createdAt: string;
   errors: DetectedError[];
   summary: Record<ErrorCategory, number>;
+  llmOutput?: string;
+  selectedSampleFileName?: string;
 };
 
 export type Recommendation = {
@@ -40,3 +42,31 @@ export type Recommendation = {
   priority: "low" | "medium" | "high";
   status: "pending" | "accepted" | "rejected";
 };
+
+
+export type Severity = "low" | "medium" | "high";
+
+export type WritingSampleFileType = "image" | "pdf";
+
+export type AnswerKeyItem = {
+  questionNo: number;
+  question: string;
+  expectedAnswer: string;
+  mark: number;
+};
+
+export type WritingSampleFile = {
+  id: string;
+  displayName: string;
+  fileName: string;
+  fileType: WritingSampleFileType;
+  datasetType: string;
+  expectedMaxMark: number;
+};
+
+export type WritingSampleManifest = {
+  datasetName: string;
+  answerKey: AnswerKeyItem[];
+  samples: WritingSampleFile[];
+};
+

@@ -1,28 +1,25 @@
 import type { Recommendation } from "../types";
 
-type Props = {
+interface RecommendationCardProps {
   recommendation: Recommendation;
   onUpdateStatus: (
     recommendationId: string,
     status: "accepted" | "rejected"
   ) => void;
-};
+}
 
 export default function RecommendationCard({
   recommendation,
   onUpdateStatus,
-}: Props) {
+}: RecommendationCardProps) {
   return (
     <article className="recommendation-card">
-      <div className="recommendation-header">
-        <div>
-          <h3>{recommendation.title}</h3>
-          <p className="muted">Target: {recommendation.targetCategory}</p>
-        </div>
-
-        <span className={`badge ${recommendation.priority}`}>
-          {recommendation.priority}
-        </span>
+      <div>
+        <h3>{recommendation.title}</h3>
+        <p className="muted">
+          Category: {recommendation.targetCategory} | Priority:{" "}
+          {recommendation.priority} | Status: {recommendation.status}
+        </p>
       </div>
 
       <p>
@@ -30,29 +27,22 @@ export default function RecommendationCard({
       </p>
 
       <p>
-        <strong>Suggested activity:</strong> {recommendation.activity}
+        <strong>Activity:</strong> {recommendation.activity}
       </p>
 
       <div className="recommendation-actions">
-        {recommendation.status === "pending" ? (
-          <>
-            <button
-              onClick={() => onUpdateStatus(recommendation.id, "accepted")}
-            >
-              Accept
-            </button>
-            <button
-              className="secondary"
-              onClick={() => onUpdateStatus(recommendation.id, "rejected")}
-            >
-              Reject
-            </button>
-          </>
-        ) : (
-          <span className="status-text">
-            Feedback logged: {recommendation.status}
-          </span>
-        )}
+        <button
+          onClick={() => onUpdateStatus(recommendation.id, "accepted")}
+          disabled={recommendation.status === "accepted"}
+        >
+          Accept
+        </button>
+        <button
+          onClick={() => onUpdateStatus(recommendation.id, "rejected")}
+          disabled={recommendation.status === "rejected"}
+        >
+          Reject
+        </button>
       </div>
     </article>
   );

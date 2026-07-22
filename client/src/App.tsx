@@ -1,5 +1,5 @@
+import "./App.css";
 import { useEffect, useState } from "react";
-import Navbar from "./components/Navbar";
 import StudentSelector from "./components/StudentSelector";
 import WritingSampleForm from "./components/WritingSampleForm";
 import ErrorSummary from "./components/ErrorSummary";
@@ -7,30 +7,50 @@ import ErrorTable from "./components/ErrorTable";
 import RecommendationCard from "./components/RecommendationCard";
 import {
   analyseWritingSample,
+  checkBackendHealth,
   generateRecommendations,
   getStudents,
 } from "./services/api";
 import type { AnalysisResult, Recommendation, Student } from "./types";
-import "./index.css";
-import LoginPage from "./components/LoginPage";
-import { checkBackendHealth, analyseWithLLM } from "./services/backendApi";
-import ErrorPatternDashboard from "./components/ErrorPatternDashboard";
+import WritingSampleBank from "./components/WritingSampleBank";
+import { getWritingSampleManifest } from "./services/api";
+import type { WritingSampleFile, WritingSampleManifest } from "./types";
 
+type UserRole = "therapist" | "admin";
 
-export default function App() {
+function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [role, setRole] = useState<UserRole>("therapist");
+
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [sampleText, setSampleText] = useState("");
+
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+
   const [message, setMessage] = useState("");
+  const [backendStatus, setBackendStatus] = useState("Backend status unknown");
   const [isAnalysing, setIsAnalysing] = useState(false);
-  const [isGeneratingRecommendations, setIsGeneratingRecommendations] =
-    useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<"therapist" | "admin" | null>(null);
-  const [backendStatus, setBackendStatus] = useState<string>("Checking backend...");
-  const [llmOutput, setLlmOutput] = useState<string>("");
+
+  const [writingSampleManifest, setWritingSampleManifest] =
+    useState<WritingSampleManifest | null>(null);
+
+  const [selectedSampleId, setSelectedSampleId] = useState("");
+  const [selectedSampleFileName, setSelectedSampleFileName] = useState("");
+
+  useEffect(() => {
+    async function loadWritingSamples() {
+      try {
+        const manifest = await getWritingSampleManifest();
+        setWritingSampleManifest(manifest);
+      } catch {
+        setMessage("Unable to load client writing sample bank.");
+      }
+    }
+
+    loadWritingSamples();
+  }, []);
 
   useEffect(() => {
     async function loadStudents() {
@@ -42,26 +62,46 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-  async function loadBackendStatus() {
-    try {
-      const health = await checkBackendHealth();
-      setBackendStatus(`Backend: ${health.status}, Database: ${health.db}`);
-    } catch {
-      setBackendStatus("Backend unavailable");
+    async function loadBackendStatus() {
+      try {
+        const health = await checkBackendHealth();
+        setBackendStatus(`Backend: ${health.status}, Database: ${health.db}`);
+      } catch {
+        setBackendStatus("Backend unavailable");
+      }
     }
+
+    loadBackendStatus();
+  }, []);
+
+  function handleLogin(selectedRole: UserRole) {
+    setRole(selectedRole);
+    setIsLoggedIn(true);
+    setMessage(`Logged in as ${selectedRole}.`);
   }
 
-  loadBackendStatus();
-}, []);
-
-
-
-  const selectedStudent = students.find(
-    (student) => student.id === selectedStudentId
-  );
-
-  const handleAnalyse = async () => {
+  function handleLogout() {
+    setIsLoggedIn(false);
+    setSelectedStudentId("");
+    setSampleText("");
+    setAnalysis(null);
+    setRecommendations([]);
     setMessage("");
+  }
+
+  function handleSelectWritingSample(sample: WritingSampleFile) {
+    setSelectedSampleId(sample.id);
+    setSelectedSampleFileName(sample.fileName);
+
+    setMessage(
+      `${sample.displayName} selected. Paste OCR/extracted text before running analysis.`
+    );
+  }
+
+  async function handleAnalyseSample() {
+    const wordCount = sampleText.trim()
+      ? sampleText.trim().split(/\s+/).length
+      : 0;
 
     if (!selectedStudentId) {
       setMessage("Please select a student before submitting a writing sample.");
@@ -73,108 +113,157 @@ export default function App() {
       return;
     }
 
-    const wordCount = sampleText.trim().split(/\s+/).length;
-
     if (wordCount < 30) {
-      setMessage(
-        "Warning: Sample is under 30 words. For this demo, analysis will still proceed."
+      const confirmShortSample = window.confirm(
+        "This writing sample is below the recommended 30 words. Continue analysis anyway?"
       );
+
+      if (!confirmShortSample) {
+        setMessage(
+          "Analysis cancelled. Please provide a longer writing sample."
+        );
+        return;
+      }
     }
 
     try {
       setIsAnalysing(true);
+      setMessage("Analysing writing sample...");
 
       const result = await analyseWritingSample(selectedStudentId, sampleText);
-      setAnalysis(result);
+
+      setAnalysis({
+        ...result,
+        selectedSampleFileName,
+      });
+
       setRecommendations([]);
-      try {
-            const output = await analyseWithLLM(sampleText);
-            setLlmOutput(output);
-          } catch {
-            setLlmOutput("LLM backend analysis unavailable. Showing mock structured analysis only.");
-          }
-    } catch (error) {
-      setMessage("Analysis failed. Please try again.");
+      setMessage("Analysis completed successfully.");
+    } catch {
+      setMessage(
+        "Analysis failed. Please check the backend connection and try again."
+      );
     } finally {
       setIsAnalysing(false);
     }
-  };
+  }
 
-  const handleGenerateRecommendations = async () => {
+  async function handleGenerateRecommendations() {
     if (!analysis) {
-      setMessage("Generate an analysis before requesting recommendations.");
+      setMessage("Run an analysis before generating recommendations.");
       return;
     }
+
     const generated = await generateRecommendations(analysis);
     setRecommendations(generated);
     setMessage("Intervention recommendations generated.");
+  }
 
-    try {
-      setIsGeneratingRecommendations(true);
-      const result = await generateRecommendations(analysis.id);
-      setRecommendations(result);
-      setMessage("Recommendations generated successfully.");
-    } catch (error) {
-      setMessage("Recommendation generation failed. Please try again.");
-    } finally {
-      setIsGeneratingRecommendations(false);
-    }
-  };
-
-  const handleUpdateRecommendationStatus = (
+  function handleUpdateRecommendationStatus(
     recommendationId: string,
     status: "accepted" | "rejected"
-  ) => {
-    setRecommendations((currentRecommendations) =>
-      currentRecommendations.map((recommendation) =>
+  ) {
+    setRecommendations((current) =>
+      current.map((recommendation) =>
         recommendation.id === recommendationId
           ? { ...recommendation, status }
           : recommendation
       )
     );
 
-    setMessage(`Recommendation ${status}. Feedback signal logged.`);
-  };
+    setMessage(`Recommendation ${status}. Therapist feedback recorded.`);
+  }
 
   if (!isLoggedIn) {
     return (
-      <LoginPage
-        onLogin={(role) => {
-          setUserRole(role);
-          setIsLoggedIn(true);
-        }}
-      />
+      <main className="login-page">
+        <section className="login-left">
+          <div className="brand-row">
+            <div className="brand-icon">✦</div>
+            <div>
+              <h1>D.I.A.L</h1>
+              <p>DAS Individualised AI-Based Learning System</p>
+            </div>
+          </div>
+
+          <div className="login-content">
+            <h2>Welcome back</h2>
+            <p>
+              Sign in to access student writing analysis, error pattern reports,
+              and intervention recommendations.
+            </p>
+
+            <label>Email</label>
+            <input value="therapist@das.org.sg" readOnly />
+
+            <label>Password</label>
+            <input value="password" type="password" readOnly />
+
+            <button
+              className="primary-button"
+              onClick={() => handleLogin("therapist")}
+            >
+              Log In as Therapist
+            </button>
+
+            <button
+              className="secondary-button"
+              onClick={() => handleLogin("admin")}
+            >
+              Continue as Admin Demo
+            </button>
+          </div>
+        </section>
+
+        <section className="login-right">
+          <div className="project-card">
+            <span>PROJECT 2026</span>
+            <h2>Error Pattern Analyzer</h2>
+            <p>
+              Helping Educational Therapists review student writing samples,
+              identify recurring error patterns, and generate targeted
+              intervention strategies.
+            </p>
+          </div>
+
+          <div className="uc-card">
+            <strong>UC2</strong>
+            <span>Submit writing samples for analysis</span>
+          </div>
+        </section>
+      </main>
     );
   }
 
   return (
     <main>
-      <div className="top-bar">
-        <Navbar />
-
-        <div className="session-controls">
-          <span>Logged in as {userRole}</span>
-          <button
-            className="logout-button"
-            onClick={() => {
-              setIsLoggedIn(false);
-              setUserRole(null);
-            }}
-          >
-            Log Out
-          </button>
+      <header className="app-header">
+        <div className="brand-row">
+          <div className="brand-icon">✦</div>
+          <div>
+            <h1>D.I.A.L</h1>
+            <p>DAS Individualised AI-Based Learning System</p>
+          </div>
         </div>
-      </div>
+
+        <div className="header-actions">
+          <span>PROJECT 2026</span>
+          <p>Logged in as {role}</p>
+          <button onClick={handleLogout}>Log Out</button>
+        </div>
+      </header>
 
       <section className="hero">
-        <h2>Error Pattern Analyzer & Intervention Recommendation Engine</h2>
-        <p>
-          Frontend prototype for DAS D.I.A.L Problem Statements 4 and 6. This
-          demo uses mock analysis data while the backend API is under
-          development.
-        </p>
+        <div>
+          <h2>Error Pattern Analyzer & Intervention Recommendation Engine</h2>
+          <p>
+            UC2 frontend workflow: submit a student writing sample, validate the
+            input, call backend analysis, and display diagnostic results for
+            therapist review.
+          </p>
+        </div>
 
-        <p className="muted">{backendStatus}</p>
+        <div className="status-pill">{backendStatus}</div>
       </section>
 
       {message && <div className="message">{message}</div>}
@@ -187,27 +276,19 @@ export default function App() {
             onSelect={setSelectedStudentId}
           />
 
-          {selectedStudent && (
-            <section className="card">
-              <h2>Selected Student</h2>
-              <p>
-                <strong>Name:</strong> {selectedStudent.name}
-              </p>
-              <p>
-                <strong>Level:</strong> {selectedStudent.level}
-              </p>
-              <p>
-                <strong>Assigned Therapist:</strong>{" "}
-                {selectedStudent.assignedTherapist}
-              </p>
-            </section>
-          )}
+          <WritingSampleBank
+            manifest={writingSampleManifest}
+            selectedSampleId={selectedSampleId}
+            onSelectSample={handleSelectWritingSample}
+          />
 
           <WritingSampleForm
             sampleText={sampleText}
-            setSampleText={setSampleText}
-            onAnalyse={handleAnalyse}
-            isLoading={isAnalysing}
+            selectedStudentId={selectedStudentId}
+            selectedSampleFileName={selectedSampleFileName}
+            isAnalysing={isAnalysing}
+            onSampleChange={setSampleText}
+            onAnalyse={handleAnalyseSample}
           />
         </div>
 
@@ -216,8 +297,8 @@ export default function App() {
             <section className="empty-state">
               <h2>No analysis yet</h2>
               <p>
-                Submit a writing sample to view error categories and
-                recommended interventions.
+                Submit a writing sample to view error categories, AI analysis
+                notes, and diagnostic recommendations.
               </p>
             </section>
           )}
@@ -226,42 +307,43 @@ export default function App() {
             <>
               <ErrorSummary analysis={analysis} />
               <ErrorTable errors={analysis.errors} />
-              <ErrorPatternDashboard analysis={analysis} />
-              {llmOutput && (
-                  <section className="card">
-                    <h2>AI Analysis Notes</h2>
-                    <p className="muted">
-                      Response generated from the backend LLM analysis endpoint.
-                    </p>
-                    <div className="llm-output">
-                      {llmOutput}
-                    </div>
-                  </section>
-                )}
+
+              {analysis.llmOutput && (
+                <section className="card">
+                  <h2>AI Analysis Notes</h2>
+                  <p className="muted">
+                    Response generated from the backend LLM analysis endpoint.
+                  </p>
+                  <div className="llm-output">{analysis.llmOutput}</div>
+                </section>
+              )}
 
               <section className="card">
-                <h2>Intervention Recommendations</h2>
+                <h2>Proceed to UC3: Intervention Recommendations</h2>
                 <p className="muted">
                   Recommendations are generated based on detected error
                   categories and severity.
                 </p>
 
-                <button className="primary-button" onClick={handleGenerateRecommendations}>
+                <button
+                  className="primary-button"
+                  onClick={handleGenerateRecommendations}
+                >
                   Generate Recommendations
                 </button>
-              </section>
 
-              {recommendations.length > 0 && (
-                <section className="recommendations-list">
-                  {recommendations.map((recommendation) => (
-                    <RecommendationCard
-                      key={recommendation.id}
-                      recommendation={recommendation}
-                      onUpdateStatus={handleUpdateRecommendationStatus}
-                    />
-                  ))}
-                </section>
-              )}
+                {recommendations.length > 0 && (
+                  <div className="recommendation-list">
+                    {recommendations.map((recommendation) => (
+                      <RecommendationCard
+                        key={recommendation.id}
+                        recommendation={recommendation}
+                        onUpdateStatus={handleUpdateRecommendationStatus}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
             </>
           )}
         </div>
@@ -269,3 +351,5 @@ export default function App() {
     </main>
   );
 }
+
+export default App;

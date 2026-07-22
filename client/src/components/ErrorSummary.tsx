@@ -1,26 +1,46 @@
 import type { AnalysisResult } from "../types";
 
-type Props = {
+interface ErrorSummaryProps {
   analysis: AnalysisResult;
-};
+}
 
-export default function ErrorSummary({ analysis }: Props) {
-  const entries = Object.entries(analysis.summary);
+export default function ErrorSummary({ analysis }: ErrorSummaryProps) {
+  const totalErrors =
+    analysis.summary.phonological +
+    analysis.summary.orthographic +
+    analysis.summary.morphological +
+    analysis.summary.grammar +
+    analysis.summary.other;
 
   return (
     <section className="card">
-      <h2>Error Pattern Summary</h2>
+      <h2>Error Summary</h2>
       <p className="muted">
-        The system categorises detected errors by type and frequency.
+        Structured diagnostic summary generated from the submitted writing
+        sample.
       </p>
 
       <div className="summary-grid">
-        {entries.map(([category, count]) => (
-          <div className="summary-box" key={category}>
-            <span>{category}</span>
-            <strong>{count}</strong>
-          </div>
-        ))}
+        <div>
+          <strong>{totalErrors}</strong>
+          <span>Total Errors</span>
+        </div>
+        <div>
+          <strong>{analysis.summary.phonological}</strong>
+          <span>Phonological</span>
+        </div>
+        <div>
+          <strong>{analysis.summary.orthographic}</strong>
+          <span>Orthographic</span>
+        </div>
+        <div>
+          <strong>{analysis.summary.morphological}</strong>
+          <span>Morphological</span>
+        </div>
+        <div>
+          <strong>{analysis.summary.grammar}</strong>
+          <span>Grammar</span>
+        </div>
       </div>
     </section>
   );
