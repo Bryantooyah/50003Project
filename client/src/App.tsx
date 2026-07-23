@@ -5,23 +5,32 @@ import WritingSampleForm from "./components/WritingSampleForm";
 import ErrorSummary from "./components/ErrorSummary";
 import ErrorTable from "./components/ErrorTable";
 import RecommendationCard from "./components/RecommendationCard";
+import { AdminDashboard } from "./components/AdminDashboard";
 import {
   analyseWritingSample,
   checkBackendHealth,
   generateRecommendations,
-  getStudents,
+  getTherapistStudents,
 } from "./services/api";
 import type { AnalysisResult, Recommendation, Student } from "./types";
 import WritingSampleBank from "./components/WritingSampleBank";
 import { getWritingSampleManifest } from "./services/api";
 import type { WritingSampleFile, WritingSampleManifest } from "./types";
 
-type UserRole = "therapist" | "admin";
+type UserRole = "therapist" | "admin" | "parent" | "student";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState<UserRole>("therapist");
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
+  // Dynamic Login Input States
+  const [usernameInput, setUsernameInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // App Data States
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [sampleText, setSampleText] = useState("");
@@ -52,14 +61,22 @@ function App() {
     loadWritingSamples();
   }, []);
 
+  // Fetch only students assigned to the logged-in therapist from DB
   useEffect(() => {
-    async function loadStudents() {
-      const data = await getStudents();
-      setStudents(data);
+    async function loadAssignedStudents() {
+      if (isLoggedIn && role === "therapist" && currentUser?.id) {
+        try {
+          const assignedStudents = await getTherapistStudents(currentUser.id);
+          setStudents(assignedStudents);
+        } catch (err) {
+          console.error("Failed to load assigned students:", err);
+          setMessage("Could not load assigned students.");
+        }
+      }
     }
 
-    loadStudents();
-  }, []);
+    loadAssignedStudents();
+  }, [isLoggedIn, role, currentUser]);
 
   useEffect(() => {
     async function loadBackendStatus() {
@@ -74,14 +91,54 @@ function App() {
     loadBackendStatus();
   }, []);
 
-  function handleLogin(selectedRole: UserRole) {
-    setRole(selectedRole);
+  // Real Backend Login Handler
+  const handleFormLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    setIsLoggingIn(true);
+
+    try {
+      const res = await fetch("http://localhost:3001/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: usernameInput,
+          password: passwordInput,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Login failed");
+      }
+
+      // Successful login from database
+      setCurrentUser(data.user);
+      setRole(data.user.role as UserRole);
+      setIsLoggedIn(true);
+      setMessage(`Welcome, ${data.user.name}! Logged in as ${data.user.role}.`);
+    } catch (err: any) {
+      setLoginError(err.message || "Unable to log in. Please check credentials.");
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  // Demo Admin Login Shortcut
+  function handleDemoAdminLogin() {
+    setRole("admin");
+    setCurrentUser({ id: "demo-admin", name: "Admin Demo", role: "admin" });
     setIsLoggedIn(true);
-    setMessage(`Logged in as ${selectedRole}.`);
+    setMessage("Logged in as admin (Demo Mode).");
   }
 
   function handleLogout() {
     setIsLoggedIn(false);
+    setCurrentUser(null);
+    setUsernameInput("");
+    setPasswordInput("");
+    setLoginError("");
     setSelectedStudentId("");
     setSampleText("");
     setAnalysis(null);
@@ -174,6 +231,7 @@ function App() {
     setMessage(`Recommendation ${status}. Therapist feedback recorded.`);
   }
 
+  // 1. RENDER LOGIN SCREEN IF NOT LOGGED IN
   if (!isLoggedIn) {
     return (
       <main className="login-page">
@@ -193,25 +251,59 @@ function App() {
               and intervention recommendations.
             </p>
 
-            <label>Email</label>
-            <input value="therapist@das.org.sg" readOnly />
+            {loginError && (
+              <div style={{ color: "#d9534f", fontWeight: "bold", marginBottom: "1rem" }}>
+                {loginError}
+              </div>
+            )}
 
-            <label>Password</label>
-            <input value="password" type="password" readOnly />
+            <form onSubmit={handleFormLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div>
+                <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
+                  Username / Email
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter username (e.g. admin1 or therapist1)"
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  required
+                  style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
+                />
+              </div>
 
-            <button
-              className="primary-button"
-              onClick={() => handleLogin("therapist")}
-            >
-              Log In as Therapist
-            </button>
+              <div>
+                <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
+                  Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="Enter password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  required
+                  style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
+                />
+              </div>
 
-            <button
-              className="secondary-button"
-              onClick={() => handleLogin("admin")}
-            >
-              Continue as Admin Demo
-            </button>
+              <button
+                type="submit"
+                className="primary-button"
+                disabled={isLoggingIn}
+                style={{ cursor: "pointer", marginTop: "0.5rem" }}
+              >
+                {isLoggingIn ? "Logging in..." : "Log In"}
+              </button>
+
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={handleDemoAdminLogin}
+                style={{ cursor: "pointer" }}
+              >
+                Continue as Admin Demo
+              </button>
+            </form>
           </div>
         </section>
 
@@ -235,6 +327,7 @@ function App() {
     );
   }
 
+  // 2. RENDER MAIN APP AFTER LOGGING IN
   return (
     <main>
       <header className="app-header">
@@ -253,101 +346,108 @@ function App() {
         </div>
       </header>
 
-      <section className="hero">
-        <div>
-          <h2>Error Pattern Analyzer & Intervention Recommendation Engine</h2>
-          <p>
-            UC2 frontend workflow: submit a student writing sample, validate the
-            input, call backend analysis, and display diagnostic results for
-            therapist review.
-          </p>
-        </div>
-
-        <div className="status-pill">{backendStatus}</div>
-      </section>
-
-      {message && <div className="message">{message}</div>}
-
-      <div className="layout">
-        <div className="left-column">
-          <StudentSelector
-            students={students}
-            selectedStudentId={selectedStudentId}
-            onSelect={setSelectedStudentId}
-          />
-
-          <WritingSampleBank
-            manifest={writingSampleManifest}
-            selectedSampleId={selectedSampleId}
-            onSelectSample={handleSelectWritingSample}
-          />
-
-          <WritingSampleForm
-            sampleText={sampleText}
-            selectedStudentId={selectedStudentId}
-            selectedSampleFileName={selectedSampleFileName}
-            isAnalysing={isAnalysing}
-            onSampleChange={setSampleText}
-            onAnalyse={handleAnalyseSample}
-          />
-        </div>
-
-        <div className="right-column">
-          {!analysis && (
-            <section className="empty-state">
-              <h2>No analysis yet</h2>
+      {/* RENDER ADMIN DASHBOARD OR THERAPIST WORKFLOW */}
+      {role === "admin" ? (
+        <AdminDashboard />
+      ) : (
+        <>
+          <section className="hero">
+            <div>
+              <h2>Error Pattern Analyzer & Intervention Recommendation Engine</h2>
               <p>
-                Submit a writing sample to view error categories, AI analysis
-                notes, and diagnostic recommendations.
+                UC2 frontend workflow: submit a student writing sample, validate the
+                input, call backend analysis, and display diagnostic results for
+                therapist review.
               </p>
-            </section>
-          )}
+            </div>
 
-          {analysis && (
-            <>
-              <ErrorSummary analysis={analysis} />
-              <ErrorTable errors={analysis.errors} />
+            <div className="status-pill">{backendStatus}</div>
+          </section>
 
-              {analysis.llmOutput && (
-                <section className="card">
-                  <h2>AI Analysis Notes</h2>
-                  <p className="muted">
-                    Response generated from the backend LLM analysis endpoint.
+          {message && <div className="message">{message}</div>}
+
+          <div className="layout">
+            <div className="left-column">
+              <StudentSelector
+                students={students}
+                selectedStudentId={selectedStudentId}
+                onSelect={setSelectedStudentId}
+              />
+
+              <WritingSampleBank
+                manifest={writingSampleManifest}
+                selectedSampleId={selectedSampleId}
+                onSelectSample={handleSelectWritingSample}
+              />
+
+              <WritingSampleForm
+                sampleText={sampleText}
+                selectedStudentId={selectedStudentId}
+                selectedSampleFileName={selectedSampleFileName}
+                isAnalysing={isAnalysing}
+                onSampleChange={setSampleText}
+                onAnalyse={handleAnalyseSample}
+              />
+            </div>
+
+            <div className="right-column">
+              {!analysis && (
+                <section className="empty-state">
+                  <h2>No analysis yet</h2>
+                  <p>
+                    Submit a writing sample to view error categories, AI analysis
+                    notes, and diagnostic recommendations.
                   </p>
-                  <div className="llm-output">{analysis.llmOutput}</div>
                 </section>
               )}
 
-              <section className="card">
-                <h2>Proceed to UC3: Intervention Recommendations</h2>
-                <p className="muted">
-                  Recommendations are generated based on detected error
-                  categories and severity.
-                </p>
+              {analysis && (
+                <>
+                  <ErrorSummary analysis={analysis} />
+                  <ErrorTable errors={analysis.errors} />
 
-                <button
-                  className="primary-button"
-                  onClick={handleGenerateRecommendations}
-                >
-                  Generate Recommendations
-                </button>
+                  {analysis.llmOutput && (
+                    <section className="card">
+                      <h2>AI Analysis Notes</h2>
+                      <p className="muted">
+                        Response generated from the backend LLM analysis endpoint.
+                      </p>
+                      <div className="llm-output">{analysis.llmOutput}</div>
+                    </section>
+                  )}
 
-                {recommendations.length > 0 && (
-                  <div className="recommendation-list">
-                    {recommendations.map((recommendation) => (
-                      <RecommendationCard
-                        key={recommendation.id}
-                        recommendation={recommendation}
-                        onUpdateStatus={handleUpdateRecommendationStatus}
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
-            </>
-          )}
-        </div>
-      </div>
+                  <section className="card">
+                    <h2>Proceed to UC3: Intervention Recommendations</h2>
+                    <p className="muted">
+                      Recommendations are generated based on detected error
+                      categories and severity.
+                    </p>
+
+                    <button
+                      className="primary-button"
+                      onClick={handleGenerateRecommendations}
+                    >
+                      Generate Recommendations
+                    </button>
+
+                    {recommendations.length > 0 && (
+                      <div className="recommendation-list">
+                        {recommendations.map((recommendation) => (
+                          <RecommendationCard
+                            key={recommendation.id}
+                            recommendation={recommendation}
+                            onUpdateStatus={handleUpdateRecommendationStatus}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </main>
   );
 }

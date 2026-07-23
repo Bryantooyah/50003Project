@@ -14,6 +14,115 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/* ==========================================================================
+   1. Admin API Services
+   ========================================================================== */
+
+/**
+ * Fetch all user accounts from the database
+ */
+export async function fetchUsers(): Promise<{ users: any[] }> {
+  const response = await fetch(`${BACKEND_URL}/api/admin/users`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch users list");
+  }
+  return response.json();
+}
+
+/**
+ * Create a new user account (student, therapist, parent, or admin)
+ */
+export async function createUser(userData: {
+  username: string;
+  password: string;
+  name: string;
+  role: string;
+  dateOfBirth?: string;
+  age?: number;
+  level?: string;
+}): Promise<any> {
+  const response = await fetch(`${BACKEND_URL}/api/admin/users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(userData),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to create account");
+  }
+  return data;
+}
+
+/**
+ * Assign a Therapist to a Student (inserts into therapist_students)
+ */
+export async function assignTherapistToStudent(
+  therapistId: string,
+  studentId: string
+): Promise<any> {
+  const response = await fetch(`${BACKEND_URL}/api/admin/assign-therapist`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ therapistId, studentId }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to assign therapist to student");
+  }
+  return data;
+}
+
+/**
+ * Assign a Parent to a Student (inserts into parent_students)
+ */
+export async function assignParentToStudent(
+  parentId: string,
+  studentId: string
+): Promise<any> {
+  const response = await fetch(`${BACKEND_URL}/api/admin/assign-parent`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ parentId, studentId }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to assign parent to student");
+  }
+  return data;
+}
+
+/**
+ * Fetch only the students assigned to a specific therapist from PostgreSQL
+ */
+export async function getTherapistStudents(therapistId: string): Promise<Student[]> {
+  const response = await fetch(`${BACKEND_URL}/api/admin/therapist/${therapistId}/students`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch assigned students for therapist");
+  }
+
+  const data = await response.json();
+  return (data.students || []).map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    age: s.age ?? 0,
+    level: s.level ?? "Unspecified",
+  }));
+}
+
+/* ==========================================================================
+   2. Existing UC2 & System API Services
+   ========================================================================== */
+
 export async function getStudents(): Promise<Student[]> {
   await delay(300);
   return mockStudents;
@@ -159,6 +268,7 @@ export async function generateRecommendations(
 
   return recommendations;
 }
+
 export async function getWritingSampleManifest(): Promise<WritingSampleManifest> {
   const response = await fetch("/writing-samples/manifest.json");
 

@@ -1,8 +1,51 @@
+import React, { useState } from 'react';
+
+type User = {
+  id: string;
+  username: string;
+  name: string;
+  role: 'admin' | 'therapist' | 'parent' | 'student';
+};
+
 type LoginPageProps = {
-  onLogin: (role: "therapist" | "admin") => void;
+  onLogin: (user: User) => void;
 };
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
+  const [username, setUsername] = useState('admin1');
+  const [password, setPassword] = useState('Secret123');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:3001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Invalid credentials');
+      }
+
+      // Success: pass user object back to App state
+      onLogin(data.user);
+    } catch (err: any) {
+      setError(err.message || 'Failed to connect to authentication server');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="login-page">
       <section className="login-left">
@@ -20,19 +63,21 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           and intervention recommendations.
         </p>
 
-        <form
-          className="login-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onLogin("therapist");
-          }}
-        >
+        {error && (
+          <div style={{ color: '#d9534f', marginBottom: '1rem', fontWeight: 500 }}>
+            {error}
+          </div>
+        )}
+
+        <form className="login-form" onSubmit={handleSubmit}>
           <label>
-            Email
+            Email / Username
             <input
-              type="email"
-              defaultValue="therapist@das.org.sg"
-              placeholder="therapist@das.org.sg"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username or email"
+              required
             />
           </label>
 
@@ -40,17 +85,28 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             Password
             <input
               type="password"
-              defaultValue="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter password"
+              required
             />
           </label>
 
-          <button type="submit">Log In as Therapist</button>
+          <button type="submit" disabled={loading}>
+            {loading ? 'Logging in...' : 'Log In'}
+          </button>
 
           <button
             type="button"
             className="secondary-login"
-            onClick={() => onLogin("admin")}
+            onClick={() =>
+              onLogin({
+                id: 'demo-admin-id',
+                username: 'admin_demo',
+                name: 'Admin Demo User',
+                role: 'admin',
+              })
+            }
           >
             Continue as Admin Demo
           </button>
@@ -67,7 +123,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             intervention strategies.
           </p>
         </div>
-
       </section>
     </main>
   );
