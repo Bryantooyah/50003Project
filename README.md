@@ -1,8 +1,8 @@
 # DAS D.I.A.L — 50.003 Project
 
-Prototype for DAS DIAL: PS4 (Error Pattern Analyzer) and PS7 (Parent Insight
-Dashboard). `client/` is the React frontend, `server/` is the Express + Postgres
-backend.
+Prototype for DAS DIAL: PS4 (Error Pattern Analyzer) and PS6 (Intervention
+Recommendation Engine). `client/` is the React frontend, `server/` is the
+Express + Postgres backend.
 
 ## Prerequisites
 
@@ -120,7 +120,7 @@ insert into users (username, password_hash, name, role) values
   ('student1', 'x', 'Aaron Tan', 'student');
 
 insert into therapists (user_id) select id from users where username = 'therapist1';
-insert into students (user_id, age, level) select id, 9, 'Primary 3' from users where username = 'student1';
+insert into students (user_id, date_of_birth, level) select id, '2017-03-01', 'Primary 3' from users where username = 'student1';
 
 insert into therapist_students (therapist_id, student_id)
   select t.user_id, s.user_id from therapists t, students s;
@@ -152,21 +152,48 @@ Postgres container — running `docker-compose.yml` gives everyone an identical
 needed later (e.g. one real dataset everyone's frontend reads from), that's a
 separate step (hosted Postgres, or exposing one machine's DB on the network).
 
-## Roadmap — planned next steps (Bryan's Suggestions)
+## Use case status (DAS DIAL UC1–UC5)
 
-The app currently only has a single, no-login student-facing flow. Planned
-direction:
+Login, role-based routing (admin/therapist), and an Admin Dashboard now
+exist. Status below reflects actual code, not intent — updated as of this
+pivot to PS6.
 
-- **Login page** + role-based routing into four views — **admin**,
-  **therapist**, **parent**, **student** — matching the `user_role` enum
-  already in the schema.
-- **Admin**: create/manage accounts, assign therapists to students and
-  parents to students (`therapist_students` / `parent_students`), handle
-  account issues.
-- **Therapist**: view a student's submitted work and analysis, leave feedback
-  (`writing_samples.therapist_feedback`, `therapist_notes` for general notes).
-- **Parent**: PS7 interactive dashboard — reads from the `insights` table
-  (plain-language, pre-generated summaries), not raw analysis data.
-- **Student**: upload a writing sample as an image, OCR it into text/markdown
-  before sending to the AI (cheaper than sending raw images, and more accurate
-  analysis on clean text), then view the resulting error analysis.
+- **UC1 — Assign Students to Educational Therapists: mostly implemented.**
+  `AdminDashboard.tsx` creates accounts and assigns therapist↔student via
+  `POST /api/admin/users` / `POST /api/admin/assign-therapist`
+  (`server/src/routes/admin.ts`, `server/src/db/admin.ts`); therapist views
+  are correctly scoped server-side (`getStudentsForTherapist` filters by
+  `therapist_id`). Missing: incomplete-profile validation/error state; no
+  auth check on admin/therapist routes yet, so "other Therapists cannot
+  view" isn't actually enforced server-side; admin-role users never get an
+  `admins` table row.
+- **UC2 — Submit Student Writing Sample for Analysis: partially
+  implemented.** Frontend has a real writing-sample bank
+  (`client/public/writing-samples/`, real DAS scans/PDFs + `manifest.json`
+  with answer keys) and a working submission flow. `POST /api/analyse` calls
+  OpenAI but only takes `{text}` — no student/sample id, so nothing is
+  persisted (`writing_samples.ai_analysis`/`therapist_feedback` sit unused).
+  Missing: structured error categorisation instead of raw text, persistence,
+  and the AI Processing Service (OCR) — image samples currently need the
+  therapist to paste transcribed text manually. Already tracked as the next
+  backend task in `client/Changes.txt`.
+- **UC3 — Generate and Refine Intervention Recommendations: partially
+  implemented.** Frontend generates rule-based recommendations from error
+  counts with working Accept/Reject buttons. Missing: feedback isn't
+  persisted (`writing_samples.recommendations` unused — lost on refresh, so
+  it can't refine future recommendations per spec), no LLM re-ranking, and
+  rules aren't yet mapped to DAS's SLP Bands A/B/C (materials just received).
+- **UC4 — View Student Error Pattern Dashboard: partially implemented.**
+  `ErrorPatternDashboard.tsx` shows category/severity breakdowns for the
+  single just-run analysis, not historical trends — blocked on UC2's
+  persistence. Missing: history endpoint, date/category filters,
+  drill-into-session, PDF export.
+- **UC5 — Evaluate Intervention Effectiveness and Correlate Error
+  Remediation: not started.** Depends on UC2 (persisted history) and UC3
+  (persisted, timestamped acceptance) existing first, then: before/after
+  error-frequency comparison, effectiveness score, correlation graph,
+  minimum-tracking-period warning.
+
+**Highest-leverage next step:** wire `/api/analyse` to accept a student/sample
+id and persist structured results to `writing_samples` — UC3, UC4, and UC5
+all depend on that data existing.

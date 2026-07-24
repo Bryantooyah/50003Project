@@ -86,7 +86,6 @@ export async function assignParentToStudent(parentId: string, studentId: string)
 }
 
 // 5. Get students assigned to a specific therapist
-// 5. Get students assigned to a specific therapist
 export async function getStudentsForTherapist(therapistId: string) {
   const res = await pool.query(
     `SELECT 

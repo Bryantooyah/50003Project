@@ -29,7 +29,7 @@ create table admins (
 
 create table students (
   user_id uuid primary key references users(id) on delete cascade,
-  age int,
+  date_of_birth date,
   level text,                 -- e.g. "Primary 3" (DAS band/level)
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -74,19 +74,6 @@ create table writing_samples (
   updated_at timestamptz not null default now()
 );
 
--- PS7 Insights (Stored data not computed live)
-create table insights (
-  id uuid primary key default gen_random_uuid(),
-  student_id uuid not null references students(user_id) on delete cascade,
-  period_start date not null,
-  period_end date not null,
-  summary_text text not null,     -- plain-language synthesis of AI analysis + therapist feedback/notes for the period
-  metrics jsonb not null,         -- chart-ready aggregates for the dashboard
-  generated_by uuid references users(id),  -- null if system/cron-generated
-  created_at timestamptz not null default now()
-);
-
 -- helpful indexes for dashboard queries
 create index on writing_samples (student_id);
 create index on therapist_notes (student_id);
-create index on insights (student_id, period_start);
