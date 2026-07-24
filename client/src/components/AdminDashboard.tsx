@@ -24,6 +24,7 @@ export const AdminDashboard: React.FC = () => {
   // Filter States
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
   const [assignmentSearchQuery, setAssignmentSearchQuery] = useState<string>('');
+  const [userSearchQuery, setUserSearchQuery] = useState<string>(''); // <--- Added Search State
 
   const [statusMessage, setStatusMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -60,10 +61,20 @@ export const AdminDashboard: React.FC = () => {
   const therapists = users.filter((u) => u.role === 'therapist');
   const students = users.filter((u) => u.role === 'student');
 
-  // Filter accounts for the Registered Accounts table
-  const filteredUsers = selectedRoleFilter === 'all' 
-    ? users 
-    : users.filter((u) => u.role === selectedRoleFilter);
+  // Filter accounts for the Registered Accounts table (by Role AND Search Query)
+  const filteredUsers = users.filter((u) => {
+    const matchesRole = selectedRoleFilter === 'all' || u.role === selectedRoleFilter;
+    
+    const query = userSearchQuery.toLowerCase();
+    const matchesSearch = 
+      !query ||
+      u.name?.toLowerCase().includes(query) ||
+      u.username?.toLowerCase().includes(query) ||
+      u.role?.toLowerCase().includes(query) ||
+      u.id?.toLowerCase().includes(query);
+
+    return matchesRole && matchesSearch;
+  });
 
   // Filter assignments table based on search input
   const filteredAssignments = assignments.filter((item) => {
@@ -313,23 +324,36 @@ export const AdminDashboard: React.FC = () => {
         </table>
       </section>
 
-      {/* 4. REGISTERED ACCOUNTS LIST WITH ROLE FILTER */}
+      {/* 4. REGISTERED ACCOUNTS LIST WITH ROLE FILTER AND SEARCH BAR */}
       <section style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#fff' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '1rem', flexWrap: 'wrap' }}>
           <h2>Registered Accounts ({filteredUsers.length})</h2>
-          <div>
-            <label style={{ marginRight: '0.5rem', fontWeight: 'bold' }}>Filter by Role:</label>
-            <select
-              value={selectedRoleFilter}
-              onChange={(e) => setSelectedRoleFilter(e.target.value)}
-              style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc' }}
-            >
-              <option value="all">All Roles</option>
-              <option value="student">Student</option>
-              <option value="therapist">Therapist</option>
-              <option value="parent">Parent</option>
-              <option value="admin">Admin</option>
-            </select>
+          
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Registered Accounts Search Bar */}
+            <input
+              type="text"
+              placeholder="Search by name, username, ID..."
+              value={userSearchQuery}
+              onChange={(e) => setUserSearchQuery(e.target.value)}
+              style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc', minWidth: '220px' }}
+            />
+
+            {/* Role Filter */}
+            <div>
+              <label style={{ marginRight: '0.5rem', fontWeight: 'bold' }}>Filter by Role:</label>
+              <select
+                value={selectedRoleFilter}
+                onChange={(e) => setSelectedRoleFilter(e.target.value)}
+                style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc' }}
+              >
+                <option value="all">All Roles</option>
+                <option value="student">Student</option>
+                <option value="therapist">Therapist</option>
+                <option value="parent">Parent</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -346,7 +370,7 @@ export const AdminDashboard: React.FC = () => {
             {filteredUsers.length === 0 ? (
               <tr>
                 <td colSpan={4} style={{ textAlign: 'center', color: '#666', padding: '1rem' }}>
-                  No accounts found for selected role.
+                  No accounts found matching search or role filter.
                 </td>
               </tr>
             ) : (
