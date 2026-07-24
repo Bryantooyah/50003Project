@@ -6,6 +6,7 @@ import {
   assignTherapistToStudent,
   assignParentToStudent,
   getStudentsForTherapist,
+  getAllAssignments,
 } from '../db/admin';
 
 const router = Router();
@@ -18,6 +19,16 @@ router.get('/users', requireRole(['admin']), async (_req, res) => {
   try {
     const users = await getAllUsers();
     res.json({ users });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/assignments - Get list of all therapist-student relationships (ADMIN ONLY)
+router.get('/assignments', requireRole(['admin']), async (_req, res) => {
+  try {
+    const assignments = await getAllAssignments();
+    res.json({ assignments });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

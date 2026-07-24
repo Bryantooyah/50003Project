@@ -102,3 +102,20 @@ export async function getStudentsForTherapist(therapistId: string) {
   );
   return res.rows;
 }
+
+// 6. Fetch all active therapist-student relationships (with names & usernames)
+export async function getAllAssignments() {
+  const res = await pool.query(
+    `SELECT 
+        ts.therapist_id,
+        COALESCE(t.name, 'Therapist') AS therapist_name,
+        t.username AS therapist_username,
+        ts.student_id,
+        COALESCE(s.name, 'Student') AS student_name,
+        s.username AS student_username
+     FROM therapist_students ts
+     LEFT JOIN users t ON ts.therapist_id = t.id
+     LEFT JOIN users s ON ts.student_id = s.id`
+  );
+  return res.rows;
+}

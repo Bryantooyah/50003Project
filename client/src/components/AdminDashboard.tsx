@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { fetchUsers, createUser, assignTherapistToStudent } from '../services/api';
+import { 
+  fetchUsers, 
+  createUser, 
+  assignTherapistToStudent, 
+  fetchAssignments 
+} from '../services/api';
 
 export const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
 
   // Form State: Create User
   const [username, setUsername] = useState('');
@@ -15,26 +21,57 @@ export const AdminDashboard: React.FC = () => {
   const [selectedTherapistId, setSelectedTherapistId] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState('');
 
+  // Filter States
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
+  const [assignmentSearchQuery, setAssignmentSearchQuery] = useState<string>('');
+
   const [statusMessage, setStatusMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch accounts on load
-  const loadUsers = async () => {
+  // Fetch accounts and assignments on load
+  const loadDashboardData = async () => {
+    setIsLoading(true);
     try {
-      const data = await fetchUsers();
-      setUsers(data.users || []);
-    } catch (err: any) {
-      console.error('Failed to fetch user list', err);
+      // Fetch users safely
+      try {
+        const usersData = await fetchUsers();
+        setUsers(usersData || []);
+      } catch (err: any) {
+        console.error('Failed to fetch users:', err);
+      }
+
+      // Fetch assignments safely
+      try {
+        const assignmentsData = await fetchAssignments();
+        setAssignments(assignmentsData || []);
+      } catch (err: any) {
+        console.error('Failed to fetch assignments:', err);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadUsers();
+    loadDashboardData();
   }, []);
 
   // Filter accounts for the assignment dropdowns
   const therapists = users.filter((u) => u.role === 'therapist');
   const students = users.filter((u) => u.role === 'student');
+
+  // Filter accounts for the Registered Accounts table
+  const filteredUsers = selectedRoleFilter === 'all' 
+    ? users 
+    : users.filter((u) => u.role === selectedRoleFilter);
+
+  // Filter assignments table based on search input
+  const filteredAssignments = assignments.filter((item) => {
+    const query = assignmentSearchQuery.toLowerCase();
+    const therapistMatch = item.therapist_name?.toLowerCase().includes(query) || item.therapist_username?.toLowerCase().includes(query);
+    const studentMatch = item.student_name?.toLowerCase().includes(query) || item.student_username?.toLowerCase().includes(query);
+    return therapistMatch || studentMatch;
+  });
 
   // Submit Handler: Create User
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -53,12 +90,12 @@ export const AdminDashboard: React.FC = () => {
 
       setStatusMessage(`User "${username}" created successfully!`);
       
-      // Clear form & reload list
+      // Clear form & reload dashboard data
       setUsername('');
       setPassword('');
       setName('');
       setDateOfBirth('');
-      loadUsers();
+      loadDashboardData();
     } catch (err: any) {
       setStatusMessage(`Error creating user: ${err.message}`);
     } finally {
@@ -82,6 +119,9 @@ export const AdminDashboard: React.FC = () => {
       
       setSelectedTherapistId('');
       setSelectedStudentId('');
+      
+      // Refresh assignments table
+      loadDashboardData();
     } catch (err: any) {
       setStatusMessage(`Error: ${err.message}`);
     } finally {
@@ -153,7 +193,6 @@ export const AdminDashboard: React.FC = () => {
             </select>
           </div>
 
-          {/* Date of Birth field - displayed only when creating a Student */}
           {role === 'student' && (
             <div>
               <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Date of Birth</label>
@@ -229,9 +268,71 @@ export const AdminDashboard: React.FC = () => {
         </form>
       </section>
 
-      {/* 3. USER ACCOUNTS LIST */}
+      {/* 3. ASSIGNED THERAPISTS & STUDENTS TABLE */}
+      <section style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px', marginBottom: '2rem', backgroundColor: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2>Therapist & Student Assignments ({filteredAssignments.length})</h2>
+          <input
+            type="text"
+            placeholder="Search by therapist or student..."
+            value={assignmentSearchQuery}
+            onChange={(e) => setAssignmentSearchQuery(e.target.value)}
+            style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc', minWidth: '250px' }}
+          />
+        </div>
+
+        <table border={1} cellPadding={8} style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <thead>
+            <tr style={{ backgroundColor: '#f5f5f5' }}>
+              <th>Therapist</th>
+              <th>Assigned Student</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredAssignments.length === 0 ? (
+              <tr>
+                <td colSpan={2} style={{ textAlign: 'center', color: '#666', padding: '1rem' }}>
+                  No therapist-student assignments found.
+                </td>
+              </tr>
+            ) : (
+              filteredAssignments.map((item, idx) => (
+                <tr key={`${item.therapist_id}-${item.student_id}-${idx}`}>
+                  <td>
+                    <strong>{item.therapist_name || 'N/A'}</strong> 
+                    {item.therapist_username && <span style={{ color: '#666', marginLeft: '4px' }}>({item.therapist_username})</span>}
+                  </td>
+                  <td>
+                    <strong>{item.student_name || 'N/A'}</strong> 
+                    {item.student_username && <span style={{ color: '#666', marginLeft: '4px' }}>({item.student_username})</span>}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      {/* 4. REGISTERED ACCOUNTS LIST WITH ROLE FILTER */}
       <section style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#fff' }}>
-        <h2>Registered Accounts ({users.length})</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2>Registered Accounts ({filteredUsers.length})</h2>
+          <div>
+            <label style={{ marginRight: '0.5rem', fontWeight: 'bold' }}>Filter by Role:</label>
+            <select
+              value={selectedRoleFilter}
+              onChange={(e) => setSelectedRoleFilter(e.target.value)}
+              style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc' }}
+            >
+              <option value="all">All Roles</option>
+              <option value="student">Student</option>
+              <option value="therapist">Therapist</option>
+              <option value="parent">Parent</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+
         <table border={1} cellPadding={8} style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ backgroundColor: '#f5f5f5' }}>
@@ -242,14 +343,22 @@ export const AdminDashboard: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
-              <tr key={u.id}>
-                <td>{u.name}</td>
-                <td>{u.username}</td>
-                <td><strong>{u.role}</strong></td>
-                <td style={{ fontSize: '0.8rem', color: '#666' }}>{u.id}</td>
+            {filteredUsers.length === 0 ? (
+              <tr>
+                <td colSpan={4} style={{ textAlign: 'center', color: '#666', padding: '1rem' }}>
+                  No accounts found for selected role.
+                </td>
               </tr>
-            ))}
+            ) : (
+              filteredUsers.map((u) => (
+                <tr key={u.id}>
+                  <td>{u.name}</td>
+                  <td>{u.username}</td>
+                  <td><strong>{u.role}</strong></td>
+                  <td style={{ fontSize: '0.8rem', color: '#666' }}>{u.id}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </section>

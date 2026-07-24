@@ -14,6 +14,21 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Helper to get authentication headers.
+ * Retrieves session user info or defaults to admin credentials for dev testing.
+ */
+function getAuthHeaders(): Record<string, string> {
+  const userId = localStorage.getItem("userId") || "admin-dev-id";
+  const userRole = localStorage.getItem("userRole") || "admin";
+
+  return {
+    "Content-Type": "application/json",
+    "x-user-id": userId,
+    "x-user-role": userRole,
+  };
+}
+
 /* ==========================================================================
    1. Admin API Services
    ========================================================================== */
@@ -21,12 +36,29 @@ function delay(ms: number) {
 /**
  * Fetch all user accounts from the database
  */
-export async function fetchUsers(): Promise<{ users: any[] }> {
-  const response = await fetch(`${BACKEND_URL}/api/admin/users`);
+export async function fetchUsers(): Promise<any[]> {
+  const response = await fetch(`${BACKEND_URL}/api/admin/users`, {
+    headers: getAuthHeaders(),
+  });
   if (!response.ok) {
     throw new Error("Failed to fetch users list");
   }
-  return response.json();
+  const data = await response.json();
+  return data.users || [];
+}
+
+/**
+ * Fetch all therapist-student relationships & assignment dates
+ */
+export async function fetchAssignments(): Promise<any[]> {
+  const response = await fetch(`${BACKEND_URL}/api/admin/assignments`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch therapist-student assignments");
+  }
+  const data = await response.json();
+  return data.assignments || [];
 }
 
 /**
@@ -43,9 +75,7 @@ export async function createUser(userData: {
 }): Promise<any> {
   const response = await fetch(`${BACKEND_URL}/api/admin/users`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(userData),
   });
 
@@ -65,9 +95,7 @@ export async function assignTherapistToStudent(
 ): Promise<any> {
   const response = await fetch(`${BACKEND_URL}/api/admin/assign-therapist`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ therapistId, studentId }),
   });
 
@@ -87,9 +115,7 @@ export async function assignParentToStudent(
 ): Promise<any> {
   const response = await fetch(`${BACKEND_URL}/api/admin/assign-parent`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ parentId, studentId }),
   });
 
@@ -104,7 +130,9 @@ export async function assignParentToStudent(
  * Fetch only the students assigned to a specific therapist from PostgreSQL
  */
 export async function getTherapistStudents(therapistId: string): Promise<Student[]> {
-  const response = await fetch(`${BACKEND_URL}/api/admin/therapist/${therapistId}/students`);
+  const response = await fetch(`${BACKEND_URL}/api/admin/therapist/${therapistId}/students`, {
+    headers: getAuthHeaders(),
+  });
 
   if (!response.ok) {
     throw new Error("Failed to fetch assigned students for therapist");
