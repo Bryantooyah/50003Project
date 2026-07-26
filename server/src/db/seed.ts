@@ -4,7 +4,6 @@ import { hashPassword, verifyPassword } from '../utils/password'
 const ROLE_TABLES: Record<string, string> = {
   admin: 'admins',
   therapist: 'therapists',
-  parent: 'parents',
   student: 'students',
 }
 

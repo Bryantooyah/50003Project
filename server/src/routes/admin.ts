@@ -4,7 +4,6 @@ import {
   createUserWithRole,
   getAllUsers,
   assignTherapistToStudent,
-  assignParentToStudent,
   getStudentsForTherapist,
   getAllAssignments,
 } from '../db/admin';
@@ -94,21 +93,6 @@ router.post('/assign-therapist', requireRole(['admin']), async (req, res) => {
 
     await assignTherapistToStudent(therapistId, studentId);
     res.json({ status: 'ok', message: 'Therapist assigned to student successfully' });
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// POST /api/admin/assign-parent - Assign Parent to Student (ADMIN ONLY)
-router.post('/assign-parent', requireRole(['admin']), async (req, res) => {
-  try {
-    const { parentId, studentId } = req.body;
-    if (!parentId || !studentId) {
-      return res.status(400).json({ error: 'parentId and studentId are required' });
-    }
-
-    await assignParentToStudent(parentId, studentId);
-    res.json({ status: 'ok', message: 'Parent assigned to student successfully' });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }

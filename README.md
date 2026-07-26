@@ -82,7 +82,7 @@ should return `{"status":"ok","db":"connected"}`.
 There's no signup/login API yet, but you don't need raw SQL to create a
 properly-hashed user either — `npm run db:seed` (from `server/`) hashes the
 password with `hashPassword()`, inserts the `users` row plus the matching
-role-extension row (`therapists`/`parents`/`students`/`admins`), then reads
+role-extension row (`therapists`/`students`/`admins`), then reads
 the hash back from Postgres and confirms it with `verifyPassword()` — an
 end-to-end test of hashing + storage together, not just the hashing function
 in isolation.
@@ -92,7 +92,7 @@ cd server
 npm run db:seed -- --username=therapist2 --password=Secret123 --name="Mr Ong" --role=therapist
 ```
 
-`--role` is one of `admin` / `therapist` / `parent` / `student` (defaults to
+`--role` is one of `admin` / `therapist` / `student` (defaults to
 `student` if omitted). Source: [`server/src/db/seed.ts`](server/src/db/seed.ts).
 
 ### Raw SQL access

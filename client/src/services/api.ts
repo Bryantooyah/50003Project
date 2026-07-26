@@ -62,7 +62,7 @@ export async function fetchAssignments(): Promise<any[]> {
 }
 
 /**
- * Create a new user account (student, therapist, parent, or admin)
+ * Create a new user account (student, therapist, or admin)
  */
 export async function createUser(userData: {
   username: string;
@@ -102,26 +102,6 @@ export async function assignTherapistToStudent(
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.error || "Failed to assign therapist to student");
-  }
-  return data;
-}
-
-/**
- * Assign a Parent to a Student (inserts into parent_students)
- */
-export async function assignParentToStudent(
-  parentId: string,
-  studentId: string
-): Promise<any> {
-  const response = await fetch(`${BACKEND_URL}/api/admin/assign-parent`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ parentId, studentId }),
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || "Failed to assign parent to student");
   }
   return data;
 }

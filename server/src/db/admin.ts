@@ -5,7 +5,7 @@ export interface CreateUserParams {
   username: string;
   password: string;
   name: string;
-  role: 'admin' | 'therapist' | 'parent' | 'student';
+  role: 'admin' | 'therapist' | 'student';
   dateOfBirth?: string;
   age?: number;
   level?: string;
@@ -34,8 +34,6 @@ export async function createUserWithRole(params: CreateUserParams) {
     // Insert into role extension table
     if (role === 'therapist') {
       await client.query('INSERT INTO therapists (user_id) VALUES ($1)', [user.id]);
-    } else if (role === 'parent') {
-      await client.query('INSERT INTO parents (user_id) VALUES ($1)', [user.id]);
     } else if (role === 'student') {
       await client.query(
         'INSERT INTO students (user_id, date_of_birth, level) VALUES ($1, $2, $3)',
@@ -73,19 +71,7 @@ export async function assignTherapistToStudent(therapistId: string, studentId: s
   return res.rows[0];
 }
 
-// 4. Assign Parent -> Student
-export async function assignParentToStudent(parentId: string, studentId: string) {
-  const res = await pool.query(
-    `INSERT INTO parent_students (parent_id, student_id) 
-     VALUES ($1, $2) 
-     ON CONFLICT DO NOTHING 
-     RETURNING *`,
-    [parentId, studentId]
-  );
-  return res.rows[0];
-}
-
-// 5. Get students assigned to a specific therapist
+// 4. Get students assigned to a specific therapist
 export async function getStudentsForTherapist(therapistId: string) {
   const res = await pool.query(
     `SELECT 
@@ -103,7 +89,7 @@ export async function getStudentsForTherapist(therapistId: string) {
   return res.rows;
 }
 
-// 6. Fetch all active therapist-student relationships (with names & usernames)
+// 5. Fetch all active therapist-student relationships (with names & usernames)
 export async function getAllAssignments() {
   const res = await pool.query(
     `SELECT 

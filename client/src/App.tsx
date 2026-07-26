@@ -17,7 +17,7 @@ import WritingSampleBank from "./components/WritingSampleBank";
 import { getWritingSampleManifest } from "./services/api";
 import type { WritingSampleFile, WritingSampleManifest } from "./types";
 
-type UserRole = "therapist" | "admin" | "parent" | "student";
+type UserRole = "therapist" | "admin" | "student";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);

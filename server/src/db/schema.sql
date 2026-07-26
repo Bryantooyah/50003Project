@@ -1,6 +1,6 @@
 create extension if not exists pgcrypto;
 
-create type user_role as enum ('therapist', 'parent', 'student', 'admin');
+create type user_role as enum ('therapist', 'student', 'admin');
 
 create table users (
   id uuid primary key default gen_random_uuid(),
@@ -16,13 +16,9 @@ create table therapists (
   user_id uuid primary key references users(id) on delete cascade
 );
 
-create table parents (
-  user_id uuid primary key references users(id) on delete cascade
-);
-
--- DAS admin: manages accounts and relationships (student<->parent,
--- student<->therapist). No admin-specific columns needed yet, but the
--- table exists now so admin accounts can be created alongside the others.
+-- DAS admin: manages accounts and relationships (student<->therapist).
+-- No admin-specific columns needed yet, but the table exists now so admin
+-- accounts can be created alongside the others.
 create table admins (
   user_id uuid primary key references users(id) on delete cascade
 );
@@ -49,15 +45,6 @@ create table therapist_notes (
   therapist_id uuid not null references therapists(user_id),
   note text not null,
   created_at timestamptz not null default now()
-);
-
--- Parents (many-to-many relationship: parent <-> student)
-create table parent_students (
-  parent_id uuid not null references parents(user_id) on delete cascade,
-  student_id uuid not null references students(user_id) on delete cascade,
-  relationship text,          -- optional: "mother", "father", "guardian"
-  granted_at timestamptz not null default now(),
-  primary key (parent_id, student_id)
 );
 
 -- One row per submitted writing sample, plus everything derived from it.

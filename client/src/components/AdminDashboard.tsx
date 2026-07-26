@@ -199,7 +199,6 @@ export const AdminDashboard: React.FC = () => {
             >
               <option value="student">Student</option>
               <option value="therapist">Therapist</option>
-              <option value="parent">Parent</option>
               <option value="admin">Admin</option>
             </select>
           </div>
@@ -350,7 +349,6 @@ export const AdminDashboard: React.FC = () => {
                 <option value="all">All Roles</option>
                 <option value="student">Student</option>
                 <option value="therapist">Therapist</option>
-                <option value="parent">Parent</option>
                 <option value="admin">Admin</option>
               </select>
             </div>

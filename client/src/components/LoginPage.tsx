@@ -4,7 +4,7 @@ type User = {
   id: string;
   username: string;
   name: string;
-  role: 'admin' | 'therapist' | 'parent' | 'student';
+  role: 'admin' | 'therapist' | 'student';
 };
 
 type LoginPageProps = {
