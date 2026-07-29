@@ -39,6 +39,8 @@ export async function createUserWithRole(params: CreateUserParams) {
         'INSERT INTO students (user_id, date_of_birth, level) VALUES ($1, $2, $3)',
         [user.id, dateOfBirth || null, level || null]
       );
+    } else if (role === 'admin') {
+      await client.query('INSERT INTO admins (user_id) VALUES ($1)', [user.id]);
     }
 
     await client.query('COMMIT');

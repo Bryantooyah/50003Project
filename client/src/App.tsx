@@ -126,6 +126,8 @@ function App() {
       }
 
       // Successful login from database
+      localStorage.setItem("userId", data.user.id);
+      localStorage.setItem("userRole", data.user.role);
       setCurrentUser(data.user);
       setRole(data.user.role as UserRole);
       setIsLoggedIn(true);
@@ -139,6 +141,8 @@ function App() {
 
   // Demo Admin Login Shortcut
   function handleDemoAdminLogin() {
+    localStorage.setItem("userId", "demo-admin");
+    localStorage.setItem("userRole", "admin");
     setRole("admin");
     setCurrentUser({ id: "demo-admin", name: "Admin Demo", role: "admin" });
     setIsLoggedIn(true);
@@ -146,6 +150,8 @@ function App() {
   }
 
   function handleLogout() {
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userRole");
     setIsLoggedIn(false);
     setCurrentUser(null);
     setUsernameInput("");

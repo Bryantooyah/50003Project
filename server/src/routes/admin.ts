@@ -91,8 +91,19 @@ router.post('/assign-therapist', requireRole(['admin']), async (req, res) => {
       return res.status(400).json({ error: 'therapistId and studentId are required' });
     }
 
-    await assignTherapistToStudent(therapistId, studentId);
-    res.json({ status: 'ok', message: 'Therapist assigned to student successfully' });
+    const assignment = await assignTherapistToStudent(therapistId, studentId);
+    if (!assignment) {
+      return res.json({
+        status: 'ok',
+        alreadyAssigned: true,
+        message: 'This therapist is already assigned to this student.',
+      });
+    }
+    res.status(201).json({
+      status: 'ok',
+      alreadyAssigned: false,
+      message: 'Therapist assigned to student successfully',
+    });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }

@@ -125,8 +125,8 @@ export const AdminDashboard: React.FC = () => {
     try {
       setIsLoading(true);
       setStatusMessage('');
-      await assignTherapistToStudent(selectedTherapistId, selectedStudentId);
-      setStatusMessage('Successfully assigned therapist to student!');
+      const result = await assignTherapistToStudent(selectedTherapistId, selectedStudentId);
+      setStatusMessage(result.message);
       
       setSelectedTherapistId('');
       setSelectedStudentId('');
