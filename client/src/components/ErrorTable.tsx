@@ -7,7 +7,7 @@ type Props = {
 export default function ErrorTable({ errors }: Props) {
   return (
     <section className="card">
-      <h2>Detected Error Annotations</h2>
+      <h2>Detected error annotations</h2>
 
       <div className="table-wrapper">
         <table>
