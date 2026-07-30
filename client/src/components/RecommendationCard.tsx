@@ -14,12 +14,15 @@ export default function RecommendationCard({
 }: RecommendationCardProps) {
   return (
     <article className="recommendation-card">
-      <div>
-        <h3>{recommendation.title}</h3>
-        <p className="muted">
-          Category: {recommendation.targetCategory} | Priority:{" "}
-          {recommendation.priority} | Status: {recommendation.status}
-        </p>
+      <div className="recommendation-header">
+        <div>
+          <h3>{recommendation.title}</h3>
+          <p className="muted">
+            Category: {recommendation.targetCategory} | Priority:{" "}
+            {recommendation.priority}
+          </p>
+        </div>
+        <span className="status-text">{recommendation.status}</span>
       </div>
 
       <p>

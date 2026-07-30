@@ -75,6 +75,47 @@ cd client && npm run dev   # http://localhost:5173
 Check the backend + DB are wired up: `curl http://localhost:3001/api/health`
 should return `{"status":"ok","db":"connected"}`.
 
+## 5. Run the tests
+
+Backend tests use [Jest](https://jestjs.io/) + [supertest](https://github.com/ladjs/supertest),
+and run against the real Express app and your local dev Postgres (the same
+one from step 3) — there's no separate mock/test database, so Docker must be
+up and the schema applied first:
+
+```bash
+docker compose up -d      # from repo root, if not already running
+cd server
+npm run db:apply          # if you haven't applied the schema yet
+npm test
+```
+
+Tests create their own rows with randomized usernames and clean them up in
+`afterAll`, so re-running `npm test` repeatedly against the same DB is safe.
+
+Current coverage is UC1 only — all 9 test cases from the report's §4.1 UC1
+Test Plan (U1–U4, I1–I4, E2E1) are automated:
+
+- [`server/src/utils/password.test.ts`](server/src/utils/password.test.ts) —
+  unit tests for `hashPassword`/`verifyPassword` (UC1-U3).
+- [`server/src/routes/admin.test.ts`](server/src/routes/admin.test.ts) —
+  integration tests against `/api/admin/*` covering account creation
+  validation (UC1-U1/U2), unauthenticated/non-admin rejection (UC1-I4),
+  therapist-student assignment (UC1-I2), therapist-scoped access control, and
+  role-extension row creation (UC1-U4 — every role, including admin, gets a
+  matching row in its extension table). UC1-I3 (duplicate assignment) is deliberately
+  written to assert **today's actual behavior** (silent success, no "already
+  assigned" signal) rather than the not-yet-implemented "should reject"
+  behavior — see the comment in that test.
+- [`server/src/routes/uc1-e2e.test.ts`](server/src/routes/uc1-e2e.test.ts) —
+  UC1-E2E1, the full report-spec'd chain through the *real*
+  `POST /api/auth/login` route (not synthetic auth headers like the other
+  files): an admin logs in, creates a therapist and a student, assigns them,
+  the newly-created therapist logs in with their own real password, and only
+  their assigned student shows up in their scoped view (a second,
+  unassigned therapist sees nobody).
+
+**Not covered yet:** UC2–UC5 have no tests at all.
+
 ## Using the database
 
 ### Adding a user with a real hashed password
@@ -158,15 +199,19 @@ Login, role-based routing (admin/therapist), and an Admin Dashboard now
 exist. Status below reflects actual code, not intent — updated as of this
 pivot to PS6.
 
-- **UC1 — Assign Students to Educational Therapists: mostly implemented.**
+- **UC1 — Assign Students to Educational Therapists: mostly implemented,
+  now with automated tests (see "Run the tests" above).**
   `AdminDashboard.tsx` creates accounts and assigns therapist↔student via
   `POST /api/admin/users` / `POST /api/admin/assign-therapist`
   (`server/src/routes/admin.ts`, `server/src/db/admin.ts`); therapist views
   are correctly scoped server-side (`getStudentsForTherapist` filters by
-  `therapist_id`). Missing: incomplete-profile validation/error state; no
-  auth check on admin/therapist routes yet, so "other Therapists cannot
-  view" isn't actually enforced server-side; admin-role users never get an
-  `admins` table row.
+  `therapist_id`), and both are now gated by `requireAuth`/`requireRole`
+  (`server/src/middleware/auth.ts`) plus required-field/DOB validation on
+  account creation. Missing: that auth is header-trust-based
+  (`X-User-Id`/`X-User-Role`), not real session/token verification;
+  duplicate therapist-student assignment silently no-ops instead of
+  rejecting/notifying; no parent role (dropped along with PS7 — no use case
+  has a Parent actor).
 - **UC2 — Submit Student Writing Sample for Analysis: partially
   implemented.** Frontend has a real writing-sample bank
   (`client/public/writing-samples/`, real DAS scans/PDFs + `manifest.json`

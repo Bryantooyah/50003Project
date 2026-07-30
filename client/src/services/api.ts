@@ -4,11 +4,11 @@ import type {
   ErrorCategory,
   Recommendation,
   Student,
+  WritingSampleManifest,
 } from "../types";
 
-import type { WritingSampleManifest } from "../types";
-
-const BACKEND_URL = "http://localhost:3001";
+const BACKEND_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -149,13 +149,20 @@ export async function checkBackendHealth(): Promise<{
   return response.json();
 }
 
+/**
+ * Submits the sample to the backend LLM analysis endpoint.
+ *
+ * UC2 alt-flow: "backend analysis failure". If the backend cannot be reached,
+ * this falls back to demo data so the UI stays usable, but it now reports
+ * that honestly via `backendAvailable: false` instead of silently pretending
+ * the real analysis succeeded — the therapist needs to know when they're
+ * looking at a live result vs a fallback demo result.
+ */
 export async function analyseWritingSample(
   studentId: string,
   sampleText: string
 ): Promise<AnalysisResult> {
   await delay(600);
-
-  let llmOutput = "";
 
   try {
     const response = await fetch(`${BACKEND_URL}/api/analyse`, {
@@ -174,25 +181,33 @@ export async function analyseWritingSample(
     }
 
     const data: { output?: string } = await response.json();
-    llmOutput = data.output ?? "";
+
+    return {
+      ...mockAnalysisResult,
+      id: crypto.randomUUID(),
+      studentId,
+      sampleText,
+      createdAt: new Date().toISOString(),
+      llmOutput: data.output ?? "",
+      backendAvailable: true,
+    };
   } catch (error) {
     console.warn(
       "Backend LLM unavailable. Falling back to mock structured analysis.",
       error
     );
 
-    llmOutput =
-      "Backend analysis endpoint was unavailable, so the frontend displayed fallback structured mock analysis for demo purposes.";
+    return {
+      ...mockAnalysisResult,
+      id: crypto.randomUUID(),
+      studentId,
+      sampleText,
+      createdAt: new Date().toISOString(),
+      llmOutput:
+        "Backend analysis endpoint was unavailable, so this is fallback structured mock analysis for demo purposes. No live LLM output was generated.",
+      backendAvailable: false,
+    };
   }
-
-  return {
-    ...mockAnalysisResult,
-    id: crypto.randomUUID(),
-    studentId,
-    sampleText,
-    createdAt: new Date().toISOString(),
-    llmOutput,
-  };
 }
 
 export async function generateRecommendations(

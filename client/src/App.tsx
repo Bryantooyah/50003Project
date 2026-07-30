@@ -1,25 +1,31 @@
-import "./App.css";
 import { useEffect, useState } from "react";
+import Navbar from "./components/Navbar";
 import StudentSelector from "./components/StudentSelector";
 import WritingSampleForm from "./components/WritingSampleForm";
-import ErrorSummary from "./components/ErrorSummary";
+import ErrorPatternDashboard from "./components/ErrorPatternDashboard";
 import ErrorTable from "./components/ErrorTable";
 import RecommendationCard from "./components/RecommendationCard";
+import WritingSampleBank from "./components/WritingSampleBank";
 import { AdminDashboard } from "./components/AdminDashboard";
 import LongitudinalView from "./components/LongitudinalView";
 import {
   analyseWritingSample,
   checkBackendHealth,
   generateRecommendations,
+  getWritingSampleManifest,
   getTherapistStudents,
 } from "./services/api";
 import { mockAnalysisArray } from "./data/mockData";
-import type { AnalysisResult, Recommendation, Student } from "./types";
-import WritingSampleBank from "./components/WritingSampleBank";
-import { getWritingSampleManifest } from "./services/api";
-import type { WritingSampleFile, WritingSampleManifest } from "./types";
+import type {
+  AnalysisResult,
+  Recommendation,
+  Student,
+  WritingSampleFile,
+  WritingSampleManifest,
+} from "./types";
 
-type UserRole = "therapist" | "admin" | "student";
+type UserRole = "therapist" | "admin";
+type MessageTone = "info" | "success" | "warning" | "error";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -41,6 +47,7 @@ function App() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
 
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<MessageTone>("info");
   const [backendStatus, setBackendStatus] = useState("Backend status unknown");
   const [isAnalysing, setIsAnalysing] = useState(false);
 
@@ -50,13 +57,18 @@ function App() {
   const [selectedSampleId, setSelectedSampleId] = useState("");
   const [selectedSampleFileName, setSelectedSampleFileName] = useState("");
 
+  function announce(text: string, tone: MessageTone = "info") {
+    setMessage(text);
+    setMessageTone(tone);
+  }
+
   useEffect(() => {
     async function loadWritingSamples() {
       try {
         const manifest = await getWritingSampleManifest();
         setWritingSampleManifest(manifest);
       } catch {
-        setMessage("Unable to load client writing sample bank.");
+        announce("Unable to load client writing sample bank.", "error");
       }
     }
 
@@ -116,6 +128,8 @@ function App() {
       }
 
       // Successful login from database
+      localStorage.setItem("userId", data.user.id);
+      localStorage.setItem("userRole", data.user.role);
       setCurrentUser(data.user);
       setRole(data.user.role as UserRole);
       setIsLoggedIn(true);selectedStudentId
@@ -129,13 +143,17 @@ function App() {
 
   // Demo Admin Login Shortcut
   function handleDemoAdminLogin() {
+    localStorage.setItem("userId", "demo-admin");
+    localStorage.setItem("userRole", "admin");
     setRole("admin");
     setCurrentUser({ id: "demo-admin", name: "Admin Demo", role: "admin" });
     setIsLoggedIn(true);
-    setMessage("Logged in as admin (Demo Mode).");
+    announce(`Logged in as admin (Demo Mode).`, "success");
   }
 
   function handleLogout() {
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userRole");
     setIsLoggedIn(false);
     setCurrentUser(null);
     setUsernameInput("");
@@ -148,11 +166,29 @@ function App() {
     setMessage("");
   }
 
+  function handleSelectStudent(studentId: string) {
+    if (studentId === selectedStudentId) return;
+
+    setSelectedStudentId(studentId);
+
+    // Switching students mid-session must not leave the previous student's
+    // sample text or analysis results on screen — that's a real
+    // accuracy/reliability risk, not just stale UI.
+    if (sampleText || analysis || recommendations.length > 0) {
+      setSampleText("");
+      setSelectedSampleId("");
+      setSelectedSampleFileName("");
+      setAnalysis(null);
+      setRecommendations([]);
+      announce("Switched student. Previous sample and results were cleared.");
+    }
+  }
+
   function handleSelectWritingSample(sample: WritingSampleFile) {
     setSelectedSampleId(sample.id);
     setSelectedSampleFileName(sample.fileName);
 
-    setMessage(
+    announce(
       `${sample.displayName} selected. Paste OCR/extracted text before running analysis.`
     );
   }
@@ -163,12 +199,15 @@ function App() {
       : 0;
 
     if (!selectedStudentId) {
-      setMessage("Please select a student before submitting a writing sample.");
+      announce(
+        "Please select a student before submitting a writing sample.",
+        "error"
+      );
       return;
     }
 
     if (!sampleText.trim()) {
-      setMessage("Writing sample cannot be empty.");
+      announce("Writing sample cannot be empty.", "error");
       return;
     }
 
@@ -178,8 +217,9 @@ function App() {
       );
 
       if (!confirmShortSample) {
-        setMessage(
-          "Analysis cancelled. Please provide a longer writing sample."
+        announce(
+          "Analysis cancelled. Please provide a longer writing sample.",
+          "warning"
         );
         return;
       }
@@ -187,7 +227,7 @@ function App() {
 
     try {
       setIsAnalysing(true);
-      setMessage("Analysing writing sample...");
+      announce("Analysing writing sample...");
 
       const result = await analyseWritingSample(selectedStudentId, sampleText);
 
@@ -197,10 +237,22 @@ function App() {
       });
 
       setRecommendations([]);
-      setMessage("Analysis completed successfully.");
+
+      // Be honest with the therapist about whether this came from the real
+      // backend/LLM or a fallback demo response — this used to always say
+      // "completed successfully" even when the backend call had failed.
+      if (result.backendAvailable) {
+        announce("Analysis completed successfully.", "success");
+      } else {
+        announce(
+          "Backend analysis service is unavailable. Showing fallback demo results — this is not live LLM output.",
+          "warning"
+        );
+      }
     } catch {
-      setMessage(
-        "Analysis failed. Please check the backend connection and try again."
+      announce(
+        "Analysis failed. Please check the backend connection and try again.",
+        "error"
       );
     } finally {
       setIsAnalysing(false);
@@ -209,13 +261,13 @@ function App() {
 
   async function handleGenerateRecommendations() {
     if (!analysis) {
-      setMessage("Run an analysis before generating recommendations.");
+      announce("Run an analysis before generating recommendations.", "error");
       return;
     }
 
     const generated = await generateRecommendations(analysis);
     setRecommendations(generated);
-    setMessage("Intervention recommendations generated.");
+    announce("Intervention recommendations generated.", "success");
   }
 
   function handleUpdateRecommendationStatus(
@@ -230,7 +282,7 @@ function App() {
       )
     );
 
-    setMessage(`Recommendation ${status}. Therapist feedback recorded.`);
+    announce(`Recommendation ${status}. Therapist feedback recorded.`, "success");
   }
 
   // 1. RENDER LOGIN SCREEN IF NOT LOGGED IN
@@ -332,21 +384,7 @@ function App() {
   // 2. RENDER MAIN APP AFTER LOGGING IN
   return (
     <main>
-      <header className="app-header">
-        <div className="brand-row">
-          <div className="brand-icon">✦</div>
-          <div>
-            <h1>D.I.A.L</h1>
-            <p>DAS Individualised AI-Based Learning System</p>
-          </div>
-        </div>
-
-        <div className="header-actions">
-          <span>PROJECT 2026</span>
-          <p>Logged in as {role}</p>
-          <button onClick={handleLogout}>Log Out</button>
-        </div>
-      </header>
+      <Navbar role={role} onLogout={handleLogout} />
 
       {/* RENDER ADMIN DASHBOARD OR THERAPIST WORKFLOW */}
       {role === "admin" ? (
@@ -366,7 +404,7 @@ function App() {
             <div className="status-pill">{backendStatus}</div>
           </section>
 
-          {message && <div className="message">{message}</div>}
+          {message && <div className={`message message-${messageTone}`}>{message}</div>}
 
           <div className="layout">
             <div className="left-column">
@@ -420,7 +458,20 @@ function App() {
 
               {analysis && (
                 <>
-                  <ErrorSummary analysis={analysis} />
+                <p className="results-for">
+                    Showing results for{" "}
+                    <strong>
+                      {students.find((s) => s.id === analysis.studentId)?.name ?? "unknown student"}
+                    </strong>
+                  </p>
+
+                  {!analysis.backendAvailable && (
+                    <div className="message message-warning">
+                      This result is fallback demo data — the analysis backend was
+                      unreachable when this sample was submitted.
+                    </div>
+                  )}
+                  <ErrorPatternDashboard analysis={analysis} />
                   <ErrorTable errors={analysis.errors} />
 
                   {analysis.llmOutput && (

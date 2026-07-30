@@ -24,7 +24,7 @@ export const mockStudents: Student[] = [
   },
 ];
 
-export const mockAnalysisResult: AnalysisResult = {
+export const mockAnalysisResult: Omit<AnalysisResult, "backendAvailable"> = {
   id: "analysis-001",
   studentId: "stu-001",
   sampleText: "",
@@ -70,8 +70,7 @@ export const mockAnalysisResult: AnalysisResult = {
       suggestedCorrection: "He goes to school",
       category: "grammar",
       severity: "low",
-      explanation:
-        "The sentence shows subject-verb agreement error.",
+      explanation: "The sentence shows subject-verb agreement error.",
     },
   ],
 };
@@ -103,8 +102,7 @@ export const mockRecommendations: Recommendation[] = [
     id: "rec-003",
     title: "Irregular spelling memory strategy",
     targetCategory: "orthographic",
-    rationale:
-      "The student makes errors in visually irregular word patterns.",
+    rationale: "The student makes errors in visually irregular word patterns.",
     activity:
       "Use look-cover-write-check and visual highlighting for irregular word chunks.",
     priority: "medium",

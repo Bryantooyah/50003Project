@@ -15,7 +15,7 @@ export default function StudentSelector({
 }: StudentSelectorProps) {
   return (
     <section className="card">
-      <h2>Select Student</h2>
+      <h2>Select student</h2>
       <p className="muted">
         Only students assigned to the authenticated therapist are shown.
       </p>

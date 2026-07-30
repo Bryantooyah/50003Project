@@ -31,6 +31,10 @@ export type AnalysisResult = {
   summary: Record<ErrorCategory, number>;
   llmOutput?: string;
   selectedSampleFileName?: string;
+  // True when the result came from the real backend/LLM call.
+  // False means the backend was unreachable and this is fallback demo data —
+  // the UI must tell the therapist this explicitly rather than pretend it succeeded.
+  backendAvailable: boolean;
 };
 
 export type Recommendation = {
@@ -42,7 +46,6 @@ export type Recommendation = {
   priority: "low" | "medium" | "high";
   status: "pending" | "accepted" | "rejected";
 };
-
 
 export type Severity = "low" | "medium" | "high";
 
@@ -70,3 +73,13 @@ export type WritingSampleManifest = {
   samples: WritingSampleFile[];
 };
 
+// Accepted MIME/extension types for a therapist-uploaded writing sample.
+// Used by WritingSampleForm to implement the "unsupported file type" alt flow.
+export const ACCEPTED_UPLOAD_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "application/pdf",
+] as const;
+
+
+export const ACCEPTED_UPLOAD_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf"];

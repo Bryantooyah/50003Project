@@ -31,19 +31,19 @@ export default function ErrorPatternDashboard({
 
   return (
     <section className="card">
-      <h2>Student Error Pattern Dashboard</h2>
+      <h2>Student error pattern dashboard</h2>
       <p className="muted">
         Visual summary of the student&apos;s detected writing error profile.
       </p>
 
       <div className="dashboard-metrics">
         <div className="metric-card">
-          <span>Total Errors</span>
+          <span>Total errors</span>
           <strong>{totalErrors}</strong>
         </div>
 
         <div className="metric-card">
-          <span>Most Common Category</span>
+          <span>Most common category</span>
           <strong>
             {topCategory
               ? categoryLabels[topCategory[0] as ErrorCategory]
@@ -52,7 +52,7 @@ export default function ErrorPatternDashboard({
         </div>
 
         <div className="metric-card">
-          <span>High Severity Errors</span>
+          <span>High severity errors</span>
           <strong>{severityCounts.high}</strong>
         </div>
       </div>
@@ -72,10 +72,7 @@ export default function ErrorPatternDashboard({
               </div>
 
               <div className="bar-track">
-                <div
-                  className="bar-fill"
-                  style={{ width: `${percentage}%` }}
-                />
+                <div className="bar-fill" style={{ width: `${percentage}%` }} />
               </div>
             </div>
           );

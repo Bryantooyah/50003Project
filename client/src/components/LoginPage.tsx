@@ -53,7 +53,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           <div className="brand-icon">✦</div>
           <div>
             <h1>D.I.A.L</h1>
-            <p>DAS Individualised AI-Based Learning System</p>
+            <p className="muted">DAS Individualised AI-Based Learning System</p>
           </div>
         </div>
 
@@ -108,7 +108,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               })
             }
           >
-            Continue as Admin Demo
+            Continue as admin demo
           </button>
         </form>
       </section>
@@ -118,7 +118,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           <span>PROJECT 2026</span>
           <h3>Error Pattern Analyzer</h3>
           <p>
-            Helping Educational Therapists review student writing samples,
+            Helping educational therapists review student writing samples,
             identify recurring error patterns, and generate targeted
             intervention strategies.
           </p>
