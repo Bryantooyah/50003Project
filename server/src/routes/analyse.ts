@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { Router } from "express";
 import dotenv from "dotenv";
+import { getStudentAnalysis } from "../db/analysis";
 
 dotenv.config();
 
@@ -55,6 +56,15 @@ router.post("/", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+router.get("/getanalysis/:studentId", async (req, res) => {
+  const studentId = req.params.studentId;
+  if (!studentId) {
+    res.status(400).json({ error: "No student ID was provided." });
+  } else {
+  const rows = await getStudentAnalysis(studentId);
+  res.json(rows);}
 });
 
 export default router;

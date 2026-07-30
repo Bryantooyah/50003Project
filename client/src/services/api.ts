@@ -286,3 +286,30 @@ export async function getWritingSampleManifest(): Promise<WritingSampleManifest>
 
   return response.json();
 }
+
+export async function getAnalysisArray(studentId: string): Promise<AnalysisResult[]>{
+  const response = await fetch(`${BACKEND_URL}/api/analyse/getanalysis/${studentId}`);
+  const rows = await response.json();
+  //   console.log("STATUS:", response.status);
+
+  // console.log(rows);
+  // return [];
+  if (rows.length === 0) {
+    return [];
+  }
+return rows.map((row: any) => ({
+    id: row.id,
+    studentId: row.student_id,
+    sampleText: row.sample_text,
+    createdAt: row.created_at,
+    errors: row.ai_analysis.errors ?? [],
+    summary: row.ai_analysis.summary ?? {
+      phonological: 0,
+      orthographic: 0,
+      morphological: 0,
+      grammar: 0,
+      other: 0,
+    },
+    llmOutput: row.ai_analysis.llmOutput ?? "",
+  }));
+}

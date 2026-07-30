@@ -6,12 +6,14 @@ import ErrorSummary from "./components/ErrorSummary";
 import ErrorTable from "./components/ErrorTable";
 import RecommendationCard from "./components/RecommendationCard";
 import { AdminDashboard } from "./components/AdminDashboard";
+import LongitudinalView from "./components/LongitudinalView";
 import {
   analyseWritingSample,
   checkBackendHealth,
   generateRecommendations,
   getTherapistStudents,
 } from "./services/api";
+import { mockAnalysisArray } from "./data/mockData";
 import type { AnalysisResult, Recommendation, Student } from "./types";
 import WritingSampleBank from "./components/WritingSampleBank";
 import { getWritingSampleManifest } from "./services/api";
@@ -29,7 +31,7 @@ function App() {
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-
+  const [analysisArray, setAnalysisArray] = useState<AnalysisResult[]>([])
   // App Data States
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -116,7 +118,7 @@ function App() {
       // Successful login from database
       setCurrentUser(data.user);
       setRole(data.user.role as UserRole);
-      setIsLoggedIn(true);
+      setIsLoggedIn(true);selectedStudentId
       setMessage(`Welcome, ${data.user.name}! Logged in as ${data.user.role}.`);
     } catch (err: any) {
       setLoginError(err.message || "Unable to log in. Please check credentials.");
@@ -372,6 +374,7 @@ function App() {
                 students={students}
                 selectedStudentId={selectedStudentId}
                 onSelect={setSelectedStudentId}
+                onSelect2={setAnalysisArray}
               />
 
               <WritingSampleBank
@@ -391,6 +394,20 @@ function App() {
             </div>
 
             <div className="right-column">
+
+              {/* uncomment the below line when want to use non mockData */}
+
+
+              {/* {analysisArray.length > 2  &&(
+              <LongitudinalView analysis={analysisArray} />)}
+              {analysisArray.length < 3 && (
+              <section className="empty-state">
+                  <h2>Not enough analysis performed yet</h2>
+                  <p>
+                    Please submit document/text and perform analysis
+                  </p>
+                </section>)} */}
+              <LongitudinalView analysis={mockAnalysisArray} />
               {!analysis && (
                 <section className="empty-state">
                   <h2>No analysis yet</h2>
