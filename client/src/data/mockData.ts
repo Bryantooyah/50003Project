@@ -158,6 +158,7 @@ export const mockAnalysisArray: AnalysisResult[] = [
       },
     ],
     llmOutput: "Initial assessment indicates high frequency of phonological and orthographic errors.",
+    backendAvailable: false,
   },
   {
     id: "analysis-002",
@@ -190,6 +191,7 @@ export const mockAnalysisArray: AnalysisResult[] = [
       },
     ],
     llmOutput: "Student shows slight improvement in grammar, but orthographic patterns remain difficult.",
+    backendAvailable: false,
   },
   {
     id: "analysis-003",
@@ -214,5 +216,6 @@ export const mockAnalysisArray: AnalysisResult[] = [
       },
     ],
     llmOutput: "Significant reduction in overall error density compared to sample 1.",
+  backendAvailable: false,
   },
 ];
