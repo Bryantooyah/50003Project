@@ -22,7 +22,7 @@ import type {
   WritingSampleManifest,
 } from "./types";
 
-type UserRole = "therapist" | "admin";
+type UserRole = "therapist" | "admin" | "student";
 type MessageTone = "info" | "success" | "warning" | "error";
 
 function App() {
@@ -387,7 +387,8 @@ function App() {
       {/* RENDER ADMIN DASHBOARD OR THERAPIST WORKFLOW */}
       {role === "admin" ? (
         <AdminDashboard />
-      ) : (
+      ):
+      role === "therapist" ? (
         <>
           <section className="hero">
             <div>
@@ -497,6 +498,11 @@ function App() {
               )}
             </div>
           </div>
+        </>
+      ):
+      /* student */(
+        <>
+        
         </>
       )}
     </main>
