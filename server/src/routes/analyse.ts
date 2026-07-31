@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 import { Router } from "express";
 import dotenv from "dotenv";
+import { zodTextFormat } from "openai/helpers/zod";
+import { LLMOutput, llmOutputSchema } from "../types";
 
 dotenv.config();
 
@@ -28,17 +30,22 @@ function getOpenAIClient() {
   };
 }
 
-async function createSimpleResponse(input: string) {
+async function createSimpleResponse(input: string): Promise<LLMOutput|null> {
   const { client, model } = getOpenAIClient();
 
-  const output = await client.responses.create({
-    model,
-    instructions:
-      "You are analysing a student's writing sample. Identify spelling, grammar, phonological, orthographic, and morphological issues clearly.",
-    input,
+  const response = await client.responses.parse({
+    model: model,
+    input: [
+      { role: "system", content: "You are analysing a student's writing sample. Identify spelling, grammar, phonological, orthographic, and morphological issues clearly." },
+      {role: "user", content: input }
+    ],
+    text: {
+      format: zodTextFormat(llmOutputSchema, "writing_sample_analysis")
+    }
   });
 
-  return output.output_text;
+  console.log(response.output_parsed);
+  return response.output_parsed as (LLMOutput | null);
 }
 
 router.post("/", async (req, res, next) => {
@@ -49,9 +56,9 @@ router.post("/", async (req, res, next) => {
       return res.status(400).json({ error: "Text is required." });
     }
 
-    const outputText = await createSimpleResponse(text);
+    const outputJson: LLMOutput | null = await createSimpleResponse(text);
 
-    return res.status(200).json({ output: outputText });
+    return outputJson == null ? res.status(503).json({error: "The LLM died while processing your request"}) : res.status(200).json(outputJson);
   } catch (err) {
     next(err);
   }

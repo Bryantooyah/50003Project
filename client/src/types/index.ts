@@ -22,6 +22,11 @@ export type DetectedError = {
   explanation: string;
 };
 
+export type LLMOutput = { 
+  issues: DetectedError[]; 
+  comments: string; 
+};
+
 export type AnalysisResult = {
   id: string;
   studentId: string;

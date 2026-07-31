@@ -16,7 +16,8 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "openai": "^6.46.0",
-    "pg": "^8.13.0"
+    "pg": "^8.13.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

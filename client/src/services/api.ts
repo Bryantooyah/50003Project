@@ -2,6 +2,7 @@ import { mockAnalysisResult, mockStudents } from "../data/mockData";
 import type {
   AnalysisResult,
   ErrorCategory,
+  LLMOutput,
   Recommendation,
   Student,
   WritingSampleManifest,
@@ -158,10 +159,7 @@ export async function checkBackendHealth(): Promise<{
  * the real analysis succeeded — the therapist needs to know when they're
  * looking at a live result vs a fallback demo result.
  */
-export async function analyseWritingSample(
-  studentId: string,
-  sampleText: string
-): Promise<AnalysisResult> {
+export async function analyseWritingSample(studentId: string, sampleText: string): Promise<AnalysisResult> {
   await delay(600);
 
   try {
@@ -180,15 +178,35 @@ export async function analyseWritingSample(
       throw new Error("Backend analysis failed");
     }
 
-    const data: { output?: string } = await response.json();
+    const data: LLMOutput = await response.json();
+
+    let errors = data.issues ?? [];
+    let summary = {
+      phonological: 0,
+      orthographic: 0,
+      morphological: 0,
+      grammar: 0,
+      other: 0
+    };
+    for (const issue of data.issues ?? []) {
+      switch (issue.category) {
+        case "phonological": summary.phonological++; break;
+        case "orthographic": summary.orthographic++; break;
+        case "morphological": summary.morphological++; break;
+        case "grammar": summary.grammar++; break;
+        case "other": summary.other++; break;
+      }
+    }
+    console.log(errors.length);
 
     return {
-      ...mockAnalysisResult,
+      errors,
+      summary,
       id: crypto.randomUUID(),
       studentId,
       sampleText,
       createdAt: new Date().toISOString(),
-      llmOutput: data.output ?? "",
+      llmOutput: data.comments ?? "",
       backendAvailable: true,
     };
   } catch (error) {

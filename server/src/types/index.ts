@@ -1,3 +1,5 @@
+import z from "zod";
+
 export type Student = {
   id: string;
   name: string;
@@ -40,3 +42,21 @@ export type Recommendation = {
   priority: "low" | "medium" | "high";
   status: "pending" | "accepted" | "rejected";
 };
+
+export type LLMOutput = { 
+  issues: DetectedError[]; 
+  comments: string; 
+};
+
+// AI-readable version of the above type
+export const llmOutputSchema = z.object({
+  issues: z.array( z.object({
+    id: z.int(),
+    originalText: z.string(),
+    suggestedCorrection: z.string(),
+    category: z.enum(["phonological", "orthographic", "morphological", "grammar", "other"]),
+    severity: z.enum(["low", "medium", "high"]),
+    explanation: z.string()
+  })),
+  comments: z.string()
+});
