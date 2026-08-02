@@ -3,8 +3,7 @@ import {
   fetchUsers, 
   createUser, 
   assignTherapistToStudent, 
-  fetchAssignments,
-  updateStudentUser
+  fetchAssignments
 } from '../services/api';
 
 // Sub-level options mapping based on selected main level
@@ -13,14 +12,6 @@ const SUB_LEVEL_OPTIONS: Record<string, string[]> = {
   'Primary': ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'],
   'Secondary': ['S1', 'S2', 'S3', 'S4', 'S5'],
   'Post-Secondary / Adult': ['Tertiary Support', 'Adult Literacy & Profiling'],
-};
-
-// Helper to parse saved level string e.g. "Primary (P3)" -> { main: "Primary", sub: "P3" }
-const parseSavedLevel = (levelStr?: string) => {
-  if (!levelStr) return { main: '', sub: '' };
-  const match = levelStr.match(/^(.*?)\s*\((.*?)\)$/);
-  if (match) return { main: match[1], sub: match[2] };
-  return { main: levelStr, sub: '' };
 };
 
 export const AdminDashboard: React.FC = () => {
@@ -46,14 +37,6 @@ export const AdminDashboard: React.FC = () => {
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
   const [assignmentSearchQuery, setAssignmentSearchQuery] = useState<string>('');
   const [userSearchQuery, setUserSearchQuery] = useState<string>('');
-
-  // Modal State for Editing Student
-  const [editingStudent, setEditingStudent] = useState<any | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editUsername, setEditUsername] = useState('');
-  const [editDob, setEditDob] = useState('');
-  const [editMainLevel, setEditMainLevel] = useState('');
-  const [editSubLevel, setEditSubLevel] = useState('');
 
   const [statusMessage, setStatusMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -173,52 +156,6 @@ export const AdminDashboard: React.FC = () => {
       loadDashboardData();
     } catch (err: any) {
       setStatusMessage(`Error: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Modal Handler: Open Edit Modal
-  const handleOpenEditModal = (user: any) => {
-    if (user.role !== 'student') return;
-
-    setEditingStudent(user);
-    setEditName(user.name || '');
-    setEditUsername(user.username || '');
-
-    const formattedDob = user.date_of_birth ? new Date(user.date_of_birth).toISOString().split('T')[0] : '';
-    setEditDob(formattedDob);
-
-    const { main, sub } = parseSavedLevel(user.level);
-    setEditMainLevel(main);
-    setEditSubLevel(sub);
-  };
-
-  // Modal Handler: Save Student Edits
-  const handleSaveStudentEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingStudent) return;
-
-    try {
-      setIsLoading(true);
-      setStatusMessage('');
-
-      const formattedLevel = editMainLevel && editSubLevel 
-        ? `${editMainLevel} (${editSubLevel})` 
-        : editMainLevel || undefined;
-
-      await updateStudentUser(editingStudent.id, {
-        name: editName,
-        username: editUsername,
-        dateOfBirth: editDob,
-        level: formattedLevel,
-      });
-
-      setStatusMessage(`Updated profile for "${editName}" successfully!`);
-      setEditingStudent(null);
-      loadDashboardData();
-    } catch (err: any) {
-      setStatusMessage(`Error updating student: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -457,12 +394,7 @@ export const AdminDashboard: React.FC = () => {
       {/* 4. REGISTERED ACCOUNTS LIST WITH ROLE FILTER AND SEARCH BAR */}
       <section style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#fff' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '1rem', flexWrap: 'wrap' }}>
-          <div>
-            <h2>Registered Accounts ({filteredUsers.length})</h2>
-            <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: '#666' }}>
-              💡 Click on any student row to view details or edit profile.
-            </p>
-          </div>
+          <h2>Registered Accounts ({filteredUsers.length})</h2>
           
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <input
@@ -497,13 +429,12 @@ export const AdminDashboard: React.FC = () => {
               <th>Role</th>
               <th>DOB</th>
               <th>Education Level</th>
-              <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', color: '#666', padding: '1rem' }}>
+                <td colSpan={5} style={{ textAlign: 'center', color: '#666', padding: '1rem' }}>
                   No accounts found matching search or role filter.
                 </td>
               </tr>
@@ -513,33 +444,12 @@ export const AdminDashboard: React.FC = () => {
                 const formattedDob = u.date_of_birth ? new Date(u.date_of_birth).toLocaleDateString() : 'N/A';
 
                 return (
-                  <tr 
-                    key={u.id}
-                    onClick={() => isStudent && handleOpenEditModal(u)}
-                    style={{ 
-                      cursor: isStudent ? 'pointer' : 'default',
-                      backgroundColor: isStudent ? '#fbfcfd' : 'transparent',
-                    }}
-                  >
+                  <tr key={u.id}>
                     <td><strong>{u.name}</strong></td>
                     <td>{u.username}</td>
                     <td><strong>{u.role}</strong></td>
                     <td>{isStudent ? formattedDob : '—'}</td>
                     <td>{isStudent ? (u.level || 'Unspecified') : '—'}</td>
-                    <td>
-                      {isStudent && (
-                        <button 
-                          type="button" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenEditModal(u);
-                          }}
-                          style={{ padding: '4px 8px', cursor: 'pointer', borderRadius: '4px' }}
-                        >
-                          ✏️ Edit
-                        </button>
-                      )}
-                    </td>
                   </tr>
                 );
               })
@@ -547,113 +457,6 @@ export const AdminDashboard: React.FC = () => {
           </tbody>
         </table>
       </section>
-
-      {/* EDIT STUDENT MODAL OVERLAY */}
-      {editingStudent && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex',
-          justifyContent: 'center', alignItems: 'center', zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: '#fff', padding: '2rem', borderRadius: '8px',
-            width: '100%', maxWidth: '450px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-          }}>
-            <h3 style={{ marginTop: 0 }}>Edit Student Profile</h3>
-            <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem' }}>
-              UUID: {editingStudent.id}
-            </p>
-
-            <form onSubmit={handleSaveStudentEdit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.25rem' }}>Full Name</label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.25rem' }}>Student ID / Username</label>
-                <input
-                  type="text"
-                  value={editUsername}
-                  onChange={(e) => setEditUsername(e.target.value)}
-                  required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.25rem' }}>Date of Birth</label>
-                <input
-                  type="date"
-                  value={editDob}
-                  onChange={(e) => setEditDob(e.target.value)}
-                  required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.25rem' }}>Education Category</label>
-                <select
-                  value={editMainLevel}
-                  onChange={(e) => {
-                    setEditMainLevel(e.target.value);
-                    setEditSubLevel('');
-                  }}
-                  required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                >
-                  <option value="">-- Select Category --</option>
-                  <option value="Kindergarten">Kindergarten</option>
-                  <option value="Primary">Primary</option>
-                  <option value="Secondary">Secondary</option>
-                  <option value="Post-Secondary / Adult">Post-Secondary / Adult</option>
-                </select>
-              </div>
-
-              {editMainLevel && (
-                <div>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.25rem' }}>Specific Level</label>
-                  <select
-                    value={editSubLevel}
-                    onChange={(e) => setEditSubLevel(e.target.value)}
-                    required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                  >
-                    <option value="">-- Select Specific Level --</option>
-                    {SUB_LEVEL_OPTIONS[editMainLevel]?.map((lvl) => (
-                      <option key={lvl} value={lvl}>{lvl}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setEditingStudent(null)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', border: '1px solid #ccc' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  style={{ padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', backgroundColor: '#007bff', color: '#fff', border: 'none' }}
-                >
-                  {isLoading ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

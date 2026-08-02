@@ -6,7 +6,6 @@ import {
   assignTherapistToStudent,
   getStudentsForTherapist,
   getAllAssignments,
-  updateStudentDetails, // 👈 Imported student update helper
 } from '../db/admin';
 
 const router = Router();
@@ -84,33 +83,6 @@ router.post('/users', requireRole(['admin']), async (req, res) => {
 
     const user = await createUserWithRole(userData);
     res.status(201).json({ status: 'ok', user });
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// PUT /api/admin/users/:id - Update student account details (ADMIN ONLY)
-router.put('/users/:id', requireRole(['admin']), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, username, dateOfBirth, level } = req.body;
-
-    if (!id || typeof id !== 'string') {
-      return res.status(400).json({ error: 'User ID parameter must be a string' });
-    }
-
-    // Validate DOB if provided
-    if (dateOfBirth) {
-      const dob = new Date(dateOfBirth);
-      if (isNaN(dob.getTime()) || dob > new Date()) {
-        return res.status(422).json({ 
-          error: 'Invalid profile data: Date of birth must be a valid past date.' 
-        });
-      }
-    }
-
-    await updateStudentDetails(id, { name, username, dateOfBirth, level });
-    res.json({ status: 'ok', message: 'Student profile updated successfully!' });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
