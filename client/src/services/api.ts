@@ -89,6 +89,31 @@ export async function createUser(userData: {
 }
 
 /**
+ * Public self-registration (no auth required) — used by the login screen's Sign Up form.
+ */
+export async function signUp(userData: {
+  username: string;
+  password: string;
+  name: string;
+  role: string;
+  dateOfBirth?: string;
+  age?: number;
+  level?: string;
+}): Promise<any> {
+  const response = await fetch(`${BACKEND_URL}/api/auth/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(userData),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to create account");
+  }
+  return data;
+}
+
+/**
  * Assign a Therapist to a Student (inserts into therapist_students)
  */
 export async function assignTherapistToStudent(
@@ -339,5 +364,6 @@ export async function getHistory(studentId: string): Promise<SummaryItem[]> {
   if (!response.ok) {
     throw new Error("Failed to student history.");
   }
-  return await response.json();
+  const data = await response.json();
+  return data.summary || [];
 }

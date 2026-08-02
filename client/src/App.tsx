@@ -15,6 +15,7 @@ import {
   getWritingSampleManifest,
   getTherapistStudents,
   saveHistory,
+  signUp,
 } from "./services/api";
 import type {
   AnalysisResult,
@@ -37,6 +38,17 @@ function App() {
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Sign Up Form States
+  const [authView, setAuthView] = useState<"login" | "signup">("login");
+  const [signUpUsername, setSignUpUsername] = useState("");
+  const [signUpPassword, setSignUpPassword] = useState("");
+  const [signUpName, setSignUpName] = useState("");
+  const [signUpRole, setSignUpRole] = useState("student");
+  const [signUpDateOfBirth, setSignUpDateOfBirth] = useState("");
+  const [signUpError, setSignUpError] = useState("");
+  const [isSigningUp, setIsSigningUp] = useState(false);
+  const [authNotice, setAuthNotice] = useState("");
 
   // App Data States
   const [students, setStudents] = useState<Student[]>([]);
@@ -141,15 +153,37 @@ function App() {
     }
   };
 
-  // Demo Admin Login Shortcut
-  function handleDemoAdminLogin() {
-    localStorage.setItem("userId", "demo-admin");
-    localStorage.setItem("userRole", "admin");
-    setRole("admin");
-    setCurrentUser({ id: "demo-admin", name: "Admin Demo", role: "admin" });
-    setIsLoggedIn(true);
-    announce(`Logged in as admin (Demo Mode).`, "success");
-  }
+  // Sign Up Handler — mirrors the Admin Dashboard's "Create New Account" form
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSignUpError("");
+    setIsSigningUp(true);
+
+    try {
+      await signUp({
+        username: signUpUsername,
+        password: signUpPassword,
+        name: signUpName,
+        role: signUpRole,
+        dateOfBirth: signUpRole === "student" ? signUpDateOfBirth : undefined,
+      });
+
+      setAuthView("login");
+      setUsernameInput(signUpUsername);
+      setPasswordInput("");
+      setSignUpUsername("");
+      setSignUpPassword("");
+      setSignUpName("");
+      setSignUpRole("student");
+      setSignUpDateOfBirth("");
+      setLoginError("");
+      setAuthNotice(`Account "${signUpUsername}" created. You can log in now.`);
+    } catch (err: any) {
+      setSignUpError(err.message || "Unable to create account.");
+    } finally {
+      setIsSigningUp(false);
+    }
+  };
 
   function handleLogout() {
     localStorage.removeItem("userId");
@@ -311,65 +345,187 @@ function App() {
           </div>
 
           <div className="login-content">
-            <h2>Welcome back</h2>
-            <p>
-              Sign in to access student writing analysis, error pattern reports,
-              and intervention recommendations.
-            </p>
+            {authView === "login" ? (
+              <>
+                <h2>Welcome back</h2>
+                <p>
+                  Sign in to access student writing analysis, error pattern reports,
+                  and intervention recommendations.
+                </p>
 
-            {loginError && (
-              <div style={{ color: "#d9534f", fontWeight: "bold", marginBottom: "1rem" }}>
-                {loginError}
-              </div>
+                {authNotice && (
+                  <div style={{ color: "#1e4620", fontWeight: "bold", marginBottom: "1rem" }}>
+                    {authNotice}
+                  </div>
+                )}
+
+                {loginError && (
+                  <div style={{ color: "#d9534f", fontWeight: "bold", marginBottom: "1rem" }}>
+                    {loginError}
+                  </div>
+                )}
+
+                <form onSubmit={handleFormLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  <div>
+                    <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
+                      Username / Email
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter username (e.g. admin1 or therapist1)"
+                      value={usernameInput}
+                      onChange={(e) => setUsernameInput(e.target.value)}
+                      required
+                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Enter password"
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      required
+                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={isLoggingIn}
+                    style={{ cursor: "pointer", marginTop: "0.5rem" }}
+                  >
+                    {isLoggingIn ? "Logging in..." : "Log In"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => {
+                      setAuthNotice("");
+                      setSignUpError("");
+                      setAuthView("signup");
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    Sign Up
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <h2>Create an account</h2>
+                <p>
+                  Register a new therapist, student, or admin account for D.I.A.L.
+                </p>
+
+                {signUpError && (
+                  <div style={{ color: "#d9534f", fontWeight: "bold", marginBottom: "1rem" }}>
+                    {signUpError}
+                  </div>
+                )}
+
+                <form onSubmit={handleSignUp} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  <div>
+                    <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
+                      Username / Email
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. therapist1 or user@das.org.sg"
+                      value={signUpUsername}
+                      onChange={(e) => setSignUpUsername(e.target.value)}
+                      required
+                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Enter password"
+                      value={signUpPassword}
+                      onChange={(e) => setSignUpPassword(e.target.value)}
+                      required
+                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Ms Lim"
+                      value={signUpName}
+                      onChange={(e) => setSignUpName(e.target.value)}
+                      required
+                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
+                      Role
+                    </label>
+                    <select
+                      value={signUpRole}
+                      onChange={(e) => setSignUpRole(e.target.value)}
+                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
+                    >
+                      <option value="student">Student</option>
+                      <option value="therapist">Therapist</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+
+                  {signUpRole === "student" && (
+                    <div>
+                      <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
+                        Date of Birth
+                      </label>
+                      <input
+                        type="date"
+                        value={signUpDateOfBirth}
+                        onChange={(e) => setSignUpDateOfBirth(e.target.value)}
+                        required
+                        style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
+                      />
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={isSigningUp}
+                    style={{ cursor: "pointer", marginTop: "0.5rem" }}
+                  >
+                    {isSigningUp ? "Creating account..." : "Create Account"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => {
+                      setSignUpError("");
+                      setAuthView("login");
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    Back to Log In
+                  </button>
+                </form>
+              </>
             )}
-
-            <form onSubmit={handleFormLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div>
-                <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
-                  Username / Email
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter username (e.g. admin1 or therapist1)"
-                  value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
-                  required
-                  style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
-                  Password
-                </label>
-                <input
-                  type="password"
-                  placeholder="Enter password"
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  required
-                  style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="primary-button"
-                disabled={isLoggingIn}
-                style={{ cursor: "pointer", marginTop: "0.5rem" }}
-              >
-                {isLoggingIn ? "Logging in..." : "Log In"}
-              </button>
-
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={handleDemoAdminLogin}
-                style={{ cursor: "pointer" }}
-              >
-                Continue as Admin Demo
-              </button>
-            </form>
           </div>
         </section>
 

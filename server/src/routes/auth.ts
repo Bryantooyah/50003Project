@@ -1,8 +1,42 @@
 import { Router } from 'express';
 import { pool } from '../db';
 import { verifyPassword } from '../utils/password';
+import { createUserWithRole } from '../db/admin';
 
 const router = Router();
+
+// POST /api/auth/signup — public self-registration, no auth required
+router.post('/signup', async (req, res) => {
+  try {
+    const { username, password, name, role, dateOfBirth, level } = req.body;
+
+    if (!username || !password || !name || !role) {
+      return res.status(400).json({
+        error: 'Incomplete profile: username, password, name, and role are required.',
+      });
+    }
+
+    if (role === 'student') {
+      if (!dateOfBirth) {
+        return res.status(422).json({
+          error: 'Incomplete profile: Date of birth is required for student accounts.',
+        });
+      }
+
+      const dob = new Date(dateOfBirth);
+      if (isNaN(dob.getTime()) || dob > new Date()) {
+        return res.status(422).json({
+          error: 'Invalid profile data: Date of birth must be a valid past date.',
+        });
+      }
+    }
+
+    const user = await createUserWithRole({ username, password, name, role, dateOfBirth, level });
+    res.status(201).json({ status: 'ok', user });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
