@@ -88,3 +88,8 @@ export const ACCEPTED_UPLOAD_TYPES = [
 
 
 export const ACCEPTED_UPLOAD_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf"];
+
+export type SummaryItem = {
+  createdAt: string,
+  summary: number[][]
+}

@@ -5,6 +5,7 @@ import type {
   LLMOutput,
   Recommendation,
   Student,
+  SummaryItem,
   WritingSampleManifest,
 } from "../types";
 
@@ -318,4 +319,25 @@ export async function getWritingSampleManifest(): Promise<WritingSampleManifest>
   }
 
   return response.json();
+}
+
+/* ==========================================================================
+   5. UC5 API services
+   ========================================================================== */
+
+export async function saveHistory(therapistId: string, analysis: AnalysisResult, recommendations: Recommendation[], feedback: string): Promise<boolean> {
+  const response = await fetch(`${BACKEND_URL}/api/history/save`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ therapistId, analysis, recommendations, feedback }),
+  });
+  return response.ok;
+}
+
+export async function getHistory(studentId: string): Promise<SummaryItem[]> {
+  const response = await fetch(`${BACKEND_URL}/api/history/get/${studentId}`);
+  if (!response.ok) {
+    throw new Error("Failed to student history.");
+  }
+  return await response.json();
 }

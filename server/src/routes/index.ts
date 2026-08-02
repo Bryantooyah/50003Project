@@ -3,6 +3,7 @@ import healthRouter from './health'
 import analyseRouter from './analyse'
 import adminRouter from './admin';
 import authRouter from './auth';
+import historyRouter from './history'
 
 const router = Router();
 
@@ -10,5 +11,6 @@ router.use('/health', healthRouter);
 router.use('/analyse', analyseRouter);
 router.use('/admin', adminRouter);
 router.use('/auth', authRouter);
+router.use('/history', historyRouter);
 
 export default router;

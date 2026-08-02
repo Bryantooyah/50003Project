@@ -7,12 +7,14 @@ import ErrorTable from "./components/ErrorTable";
 import RecommendationCard from "./components/RecommendationCard";
 import WritingSampleBank from "./components/WritingSampleBank";
 import { AdminDashboard } from "./components/AdminDashboard";
+import History from "./components/History";
 import {
   analyseWritingSample,
   checkBackendHealth,
   generateRecommendations,
   getWritingSampleManifest,
   getTherapistStudents,
+  saveHistory,
 } from "./services/api";
 import type {
   AnalysisResult,
@@ -268,6 +270,18 @@ function App() {
     announce("Intervention recommendations generated.", "success");
   }
 
+  async function handleSaveAnalysis() {
+    if (currentUser?.id && analysis != null) {
+      const therapistId: string = currentUser.id;
+	    if (await saveHistory(therapistId, analysis, recommendations, ""))
+        alert("Analysis saved!");
+      else alert("Analysis could not be saved.");
+    }
+    else {
+      alert("Analysis could not be saved.");
+    }
+  }
+
   function handleUpdateRecommendationStatus(
     recommendationId: string,
     status: "accepted" | "rejected"
@@ -431,6 +445,12 @@ function App() {
 
             <div className="right-column">
               {!analysis && (
+                <History
+				  students={students}
+                  selectedStudentId={selectedStudentId}
+                />
+/*
+// Old empty state; replaced with history & summary above
                 <section className="empty-state">
                   <h2>No analysis yet</h2>
                   <p>
@@ -438,6 +458,7 @@ function App() {
                     notes, and diagnostic recommendations.
                   </p>
                 </section>
+*/
               )}
 
               {analysis && (
@@ -493,6 +514,14 @@ function App() {
                         ))}
                       </div>
                     )}
+                  </section>
+                  <section className="card">
+                    <button
+                      className="primary-button"
+                      onClick={handleSaveAnalysis}
+                    >
+                      Save Analysis
+                    </button>
                   </section>
                 </>
               )}
