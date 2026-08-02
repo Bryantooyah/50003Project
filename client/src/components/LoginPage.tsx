@@ -60,8 +60,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
         <h2>Welcome back</h2>
         <p className="login-subtitle" style={{ color: '#666', marginBottom: '1.5rem' }}>
-          Sign in to access student writing analysis, error pattern reports,
-          and intervention recommendations.
+          Sign in to access student writing analysis, error pattern reports, and intervention recommendations.
         </p>
 
         {error && (

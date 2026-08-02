@@ -5,7 +5,6 @@ import type {
   Recommendation,
   Student,
   SummaryItem,
-  WritingSampleManifest,
 } from "../types";
 
 const BACKEND_URL =
@@ -78,23 +77,6 @@ export async function createUser(userData: CreateUserData): Promise<any> {
   const response = await fetch(`${BACKEND_URL}/api/admin/users`, {
     method: "POST",
     headers: getAuthHeaders(),
-    body: JSON.stringify(userData),
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || "Failed to create account");
-  }
-  return data;
-}
-
-/**
- * Public self-registration (no auth required) — used by the login screen's Sign Up form.
- */
-export async function signUp(userData: CreateUserData): Promise<any> {
-  const response = await fetch(`${BACKEND_URL}/api/auth/signup`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(userData),
   });
 
@@ -316,16 +298,6 @@ export async function generateRecommendations(
   }
 
   return recommendations;
-}
-
-export async function getWritingSampleManifest(): Promise<WritingSampleManifest> {
-  const response = await fetch("/writing-samples/manifest.json");
-
-  if (!response.ok) {
-    throw new Error("Failed to load writing sample manifest.");
-  }
-
-  return response.json();
 }
 
 /* ==========================================================================
