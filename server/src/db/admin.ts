@@ -1,25 +1,44 @@
+import crypto from 'crypto';
 import { pool } from './index';
 import { hashPassword } from '../utils/password';
 
-export interface CreateUserParams {
+// 1. Discriminated Union: Password is strictly required for Admin/Therapist, but completely absent for Student
+export type CreateAdminOrTherapistParams = {
   username: string;
-  password: string;
+  password: string; // Required
   name: string;
-  role: 'admin' | 'therapist' | 'student';
+  role: 'admin' | 'therapist';
+};
+
+export type CreateStudentParams = {
+  username: string;
+  name: string;
+  role: 'student'; // No password field exist at all for students
   dateOfBirth?: string;
   age?: number;
   level?: string;
+};
+
+export type CreateUserParams = CreateAdminOrTherapistParams | CreateStudentParams;
+
+export interface UpdateStudentParams {
+  name?: string;
+  username?: string;
+  dateOfBirth?: string;
+  level?: string;
 }
 
-// 1. Create a user and insert into their respective role table
+// 2. Create a user and insert into their respective role table
 export async function createUserWithRole(params: CreateUserParams) {
-  const { username, password, name, role, dateOfBirth, level } = params;
+  const { username, name, role } = params;
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
 
-    const passwordHash = await hashPassword(password);
+    // Generate random hash for students; use provided password for therapist/admin
+    const rawPassword = role === 'student' ? crypto.randomUUID() : params.password;
+    const passwordHash = await hashPassword(rawPassword);
 
     // Insert into users table
     const userRes = await client.query(
@@ -37,7 +56,7 @@ export async function createUserWithRole(params: CreateUserParams) {
     } else if (role === 'student') {
       await client.query(
         'INSERT INTO students (user_id, date_of_birth, level) VALUES ($1, $2, $3)',
-        [user.id, dateOfBirth || null, level || null]
+        [user.id, params.dateOfBirth || null, params.level || null]
       );
     } else if (role === 'admin') {
       await client.query('INSERT INTO admins (user_id) VALUES ($1)', [user.id]);
@@ -53,15 +72,62 @@ export async function createUserWithRole(params: CreateUserParams) {
   }
 }
 
-// 2. Fetch all users (useful for dropdown lists when mapping relationships)
+// 3. Fetch all users (includes date_of_birth and level for students via LEFT JOIN)
 export async function getAllUsers() {
   const res = await pool.query(
-    'SELECT id, username, name, role, created_at FROM users ORDER BY created_at DESC'
+    `SELECT 
+       u.id, 
+       u.username, 
+       u.name, 
+       u.role, 
+       u.created_at,
+       s.date_of_birth,
+       s.level
+     FROM users u
+     LEFT JOIN students s ON u.id = s.user_id
+     ORDER BY u.created_at DESC`
   );
   return res.rows;
 }
 
-// 3. Assign Therapist -> Student
+// 4. Update student profile details
+export async function updateStudentDetails(userId: string, data: UpdateStudentParams) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Update base user details (name, username)
+    if (data.name || data.username) {
+      await client.query(
+        `UPDATE users 
+         SET name = COALESCE($1, name), 
+             username = COALESCE($2, username) 
+         WHERE id = $3 AND role = 'student'`,
+        [data.name || null, data.username || null, userId]
+      );
+    }
+
+    // Update student extension details (date_of_birth, level)
+    if (data.dateOfBirth !== undefined || data.level !== undefined) {
+      await client.query(
+        `UPDATE students 
+         SET date_of_birth = COALESCE($1, date_of_birth), 
+             level = COALESCE($2, level) 
+         WHERE user_id = $3`,
+        [data.dateOfBirth || null, data.level || null, userId]
+      );
+    }
+
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// 5. Assign Therapist -> Student
 export async function assignTherapistToStudent(therapistId: string, studentId: string) {
   const res = await pool.query(
     `INSERT INTO therapist_students (therapist_id, student_id) 
@@ -73,7 +139,7 @@ export async function assignTherapistToStudent(therapistId: string, studentId: s
   return res.rows[0];
 }
 
-// 4. Get students assigned to a specific therapist
+// 6. Get students assigned to a specific therapist
 export async function getStudentsForTherapist(therapistId: string) {
   const res = await pool.query(
     `SELECT 
@@ -91,7 +157,7 @@ export async function getStudentsForTherapist(therapistId: string) {
   return res.rows;
 }
 
-// 5. Fetch all active therapist-student relationships (with names & usernames)
+// 7. Fetch all active therapist-student relationships (with names & usernames)
 export async function getAllAssignments() {
   const res = await pool.query(
     `SELECT 

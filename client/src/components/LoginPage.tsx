@@ -11,9 +11,11 @@ type LoginPageProps = {
   onLogin: (user: User) => void;
 };
 
+const BACKEND_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
+
 export default function LoginPage({ onLogin }: LoginPageProps) {
-  const [username, setUsername] = useState('admin1');
-  const [password, setPassword] = useState('Secret123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +25,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/login', {
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -37,7 +39,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         throw new Error(data.error || 'Invalid credentials');
       }
 
-      // Success: pass user object back to App state
       onLogin(data.user);
     } catch (err: any) {
       setError(err.message || 'Failed to connect to authentication server');
@@ -47,9 +48,9 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   return (
-    <main className="login-page">
-      <section className="login-left">
-        <div className="brand-row">
+    <main className="login-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+      <section className="login-left" style={{ maxWidth: '420px', width: '100%', padding: '2rem' }}>
+        <div className="brand-row" style={{ marginBottom: '1.5rem' }}>
           <div className="brand-icon">✦</div>
           <div>
             <h1>D.I.A.L</h1>
@@ -58,30 +59,31 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         </div>
 
         <h2>Welcome back</h2>
-        <p className="login-subtitle">
+        <p className="login-subtitle" style={{ color: '#666', marginBottom: '1.5rem' }}>
           Sign in to access student writing analysis, error pattern reports,
           and intervention recommendations.
         </p>
 
         {error && (
-          <div style={{ color: '#d9534f', marginBottom: '1rem', fontWeight: 500 }}>
+          <div style={{ color: '#d9534f', marginBottom: '1rem', fontWeight: 500, padding: '8px 12px', backgroundColor: '#fdf2f2', borderRadius: '4px' }}>
             {error}
           </div>
         )}
 
-        <form className="login-form" onSubmit={handleSubmit}>
-          <label>
-            Email / Username
+        <form className="login-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontWeight: 'bold' }}>
+            Username / Email
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username or email"
+              placeholder="Enter your username"
               required
+              style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
             />
           </label>
 
-          <label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontWeight: 'bold' }}>
             Password
             <input
               type="password"
@@ -89,40 +91,19 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter password"
               required
+              style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
             />
           </label>
 
-          <button type="submit" disabled={loading}>
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="primary-button"
+            style={{ padding: '10px', marginTop: '0.5rem', cursor: 'pointer' }}
+          >
             {loading ? 'Logging in...' : 'Log In'}
           </button>
-
-          <button
-            type="button"
-            className="secondary-login"
-            onClick={() =>
-              onLogin({
-                id: 'demo-admin-id',
-                username: 'admin_demo',
-                name: 'Admin Demo User',
-                role: 'admin',
-              })
-            }
-          >
-            Continue as admin demo
-          </button>
         </form>
-      </section>
-
-      <section className="login-right">
-        <div className="mission-card">
-          <span>PROJECT 2026</span>
-          <h3>Error Pattern Analyzer</h3>
-          <p>
-            Helping educational therapists review student writing samples,
-            identify recurring error patterns, and generate targeted
-            intervention strategies.
-          </p>
-        </div>
       </section>
     </main>
   );

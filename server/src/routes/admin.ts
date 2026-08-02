@@ -6,6 +6,7 @@ import {
   assignTherapistToStudent,
   getStudentsForTherapist,
   getAllAssignments,
+  updateStudentDetails, // 👈 Imported student update helper
 } from '../db/admin';
 
 const router = Router();
@@ -53,10 +54,10 @@ router.post('/users', requireRole(['admin']), async (req, res) => {
   try {
     const { username, password, name, role, dateOfBirth, level } = req.body;
 
-    // 1. Basic Incomplete Profile Validation
-    if (!username || !password || !name || !role) {
+    // 1. Basic Incomplete Profile Validation (Password ONLY required for staff)
+    if (!username || !name || !role || (role !== 'student' && !password)) {
       return res.status(400).json({ 
-        error: 'Incomplete profile: username, password, name, and role are required.' 
+        error: 'Incomplete profile: username, name, and role are required (password required for staff).' 
       });
     }
 
@@ -76,8 +77,40 @@ router.post('/users', requireRole(['admin']), async (req, res) => {
       }
     }
 
-    const user = await createUserWithRole({ username, password, name, role, dateOfBirth, level });
+    // Construct user payload matching CreateUserParams discriminated union
+    const userData = role === 'student'
+      ? { username, name, role: 'student' as const, dateOfBirth, level }
+      : { username, password, name, role: role as 'therapist' | 'admin' };
+
+    const user = await createUserWithRole(userData);
     res.status(201).json({ status: 'ok', user });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// PUT /api/admin/users/:id - Update student account details (ADMIN ONLY)
+router.put('/users/:id', requireRole(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, username, dateOfBirth, level } = req.body;
+
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({ error: 'User ID parameter must be a string' });
+    }
+
+    // Validate DOB if provided
+    if (dateOfBirth) {
+      const dob = new Date(dateOfBirth);
+      if (isNaN(dob.getTime()) || dob > new Date()) {
+        return res.status(422).json({ 
+          error: 'Invalid profile data: Date of birth must be a valid past date.' 
+        });
+      }
+    }
+
+    await updateStudentDetails(id, { name, username, dateOfBirth, level });
+    res.json({ status: 'ok', message: 'Student profile updated successfully!' });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }

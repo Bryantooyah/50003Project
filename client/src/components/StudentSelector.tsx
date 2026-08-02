@@ -15,7 +15,7 @@ export default function StudentSelector({
     <section className="card">
       <h2>Select student</h2>
       <p className="muted">
-        Only students assigned to the authenticated therapist are shown.
+        Only students assigned to you are shown.
       </p>
 
       <select

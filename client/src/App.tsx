@@ -5,24 +5,19 @@ import WritingSampleForm from "./components/WritingSampleForm";
 import ErrorPatternDashboard from "./components/ErrorPatternDashboard";
 import ErrorTable from "./components/ErrorTable";
 import RecommendationCard from "./components/RecommendationCard";
-import WritingSampleBank from "./components/WritingSampleBank";
 import { AdminDashboard } from "./components/AdminDashboard";
 import History from "./components/History";
+import LoginPage from "./components/LoginPage";
 import {
   analyseWritingSample,
-  checkBackendHealth,
   generateRecommendations,
-  getWritingSampleManifest,
   getTherapistStudents,
   saveHistory,
-  signUp,
 } from "./services/api";
 import type {
   AnalysisResult,
   Recommendation,
   Student,
-  WritingSampleFile,
-  WritingSampleManifest,
 } from "./types";
 
 type UserRole = "therapist" | "admin" | "student";
@@ -32,23 +27,6 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState<UserRole>("therapist");
   const [currentUser, setCurrentUser] = useState<any>(null);
-
-  // Dynamic Login Input States
-  const [usernameInput, setUsernameInput] = useState("");
-  const [passwordInput, setPasswordInput] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-
-  // Sign Up Form States
-  const [authView, setAuthView] = useState<"login" | "signup">("login");
-  const [signUpUsername, setSignUpUsername] = useState("");
-  const [signUpPassword, setSignUpPassword] = useState("");
-  const [signUpName, setSignUpName] = useState("");
-  const [signUpRole, setSignUpRole] = useState("student");
-  const [signUpDateOfBirth, setSignUpDateOfBirth] = useState("");
-  const [signUpError, setSignUpError] = useState("");
-  const [isSigningUp, setIsSigningUp] = useState(false);
-  const [authNotice, setAuthNotice] = useState("");
 
   // App Data States
   const [students, setStudents] = useState<Student[]>([]);
@@ -60,31 +38,30 @@ function App() {
 
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<MessageTone>("info");
-  const [backendStatus, setBackendStatus] = useState("Backend status unknown");
   const [isAnalysing, setIsAnalysing] = useState(false);
-
-  const [writingSampleManifest, setWritingSampleManifest] =
-    useState<WritingSampleManifest | null>(null);
-
-  const [selectedSampleId, setSelectedSampleId] = useState("");
-  const [selectedSampleFileName, setSelectedSampleFileName] = useState("");
 
   function announce(text: string, tone: MessageTone = "info") {
     setMessage(text);
     setMessageTone(tone);
   }
 
+  // Restore user session on mount
   useEffect(() => {
-    async function loadWritingSamples() {
-      try {
-        const manifest = await getWritingSampleManifest();
-        setWritingSampleManifest(manifest);
-      } catch {
-        announce("Unable to load client writing sample bank.", "error");
-      }
-    }
+    const savedUserId = localStorage.getItem("userId");
+    const savedUserRole = localStorage.getItem("userRole") as UserRole | null;
+    const savedUsername = localStorage.getItem("username");
+    const savedName = localStorage.getItem("name");
 
-    loadWritingSamples();
+    if (savedUserId && savedUserRole) {
+      setCurrentUser({
+        id: savedUserId,
+        role: savedUserRole,
+        username: savedUsername || "",
+        name: savedName || savedUserRole,
+      });
+      setRole(savedUserRole);
+      setIsLoggedIn(true);
+    }
   }, []);
 
   // Fetch only students assigned to the logged-in therapist from DB
@@ -104,95 +81,23 @@ function App() {
     loadAssignedStudents();
   }, [isLoggedIn, role, currentUser]);
 
-  useEffect(() => {
-    async function loadBackendStatus() {
-      try {
-        const health = await checkBackendHealth();
-        setBackendStatus(`Backend: ${health.status}, Database: ${health.db}`);
-      } catch {
-        setBackendStatus("Backend unavailable");
-      }
-    }
+  // Handle Login Callback from <LoginPage />
+  const handleLogin = (user: any) => {
+    localStorage.setItem("userId", user.id);
+    localStorage.setItem("userRole", user.role);
+    if (user.username) localStorage.setItem("username", user.username);
+    if (user.name) localStorage.setItem("name", user.name);
 
-    loadBackendStatus();
-  }, []);
-
-  // Real Backend Login Handler
-  const handleFormLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
-    setIsLoggingIn(true);
-
-    try {
-      const res = await fetch("http://localhost:3001/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: usernameInput,
-          password: passwordInput,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Login failed");
-      }
-
-      // Successful login from database
-      localStorage.setItem("userId", data.user.id);
-      localStorage.setItem("userRole", data.user.role);
-      setCurrentUser(data.user);
-      setRole(data.user.role as UserRole);
-      setIsLoggedIn(true);
-      setMessage(`Welcome, ${data.user.name}! Logged in as ${data.user.role}.`);
-    } catch (err: any) {
-      setLoginError(err.message || "Unable to log in. Please check credentials.");
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
-  // Sign Up Handler — mirrors the Admin Dashboard's "Create New Account" form
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSignUpError("");
-    setIsSigningUp(true);
-
-    try {
-      await signUp({
-        username: signUpUsername,
-        password: signUpPassword,
-        name: signUpName,
-        role: signUpRole,
-        dateOfBirth: signUpRole === "student" ? signUpDateOfBirth : undefined,
-      });
-
-      setAuthView("login");
-      setUsernameInput(signUpUsername);
-      setPasswordInput("");
-      setSignUpUsername("");
-      setSignUpPassword("");
-      setSignUpName("");
-      setSignUpRole("student");
-      setSignUpDateOfBirth("");
-      setLoginError("");
-      setAuthNotice(`Account "${signUpUsername}" created. You can log in now.`);
-    } catch (err: any) {
-      setSignUpError(err.message || "Unable to create account.");
-    } finally {
-      setIsSigningUp(false);
-    }
+    setCurrentUser(user);
+    setRole(user.role as UserRole);
+    setIsLoggedIn(true);
+    announce(`Welcome, ${user.name}! Logged in as ${user.role}.`, "success");
   };
 
   function handleLogout() {
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userRole");
+    localStorage.clear();
     setIsLoggedIn(false);
     setCurrentUser(null);
-    setUsernameInput("");
-    setPasswordInput("");
-    setLoginError("");
     setSelectedStudentId("");
     setSampleText("");
     setAnalysis(null);
@@ -205,26 +110,12 @@ function App() {
 
     setSelectedStudentId(studentId);
 
-    // Switching students mid-session must not leave the previous student's
-    // sample text or analysis results on screen — that's a real
-    // accuracy/reliability risk, not just stale UI.
     if (sampleText || analysis || recommendations.length > 0) {
       setSampleText("");
-      setSelectedSampleId("");
-      setSelectedSampleFileName("");
       setAnalysis(null);
       setRecommendations([]);
       announce("Switched student. Previous sample and results were cleared.");
     }
-  }
-
-  function handleSelectWritingSample(sample: WritingSampleFile) {
-    setSelectedSampleId(sample.id);
-    setSelectedSampleFileName(sample.fileName);
-
-    announce(
-      `${sample.displayName} selected. Paste OCR/extracted text before running analysis.`
-    );
   }
 
   async function handleAnalyseSample() {
@@ -265,24 +156,9 @@ function App() {
 
       const result = await analyseWritingSample(selectedStudentId, sampleText);
 
-      setAnalysis({
-        ...result,
-        selectedSampleFileName,
-      });
-
+      setAnalysis(result);
       setRecommendations([]);
-
-      // Be honest with the therapist about whether this came from the real
-      // backend/LLM or a fallback demo response — this used to always say
-      // "completed successfully" even when the backend call had failed.
-      if (result.backendAvailable) {
-        announce("Analysis completed successfully.", "success");
-      } else {
-        announce(
-          "Backend analysis service is unavailable. Showing fallback demo results — this is not live LLM output.",
-          "warning"
-        );
-      }
+      announce("Analysis completed successfully.", "success");
     } catch {
       announce(
         "Analysis failed. Please check the backend connection and try again.",
@@ -307,11 +183,12 @@ function App() {
   async function handleSaveAnalysis() {
     if (currentUser?.id && analysis != null) {
       const therapistId: string = currentUser.id;
-	    if (await saveHistory(therapistId, analysis, recommendations, ""))
+      if (await saveHistory(therapistId, analysis, recommendations, "")) {
         alert("Analysis saved!");
-      else alert("Analysis could not be saved.");
-    }
-    else {
+      } else {
+        alert("Analysis could not be saved.");
+      }
+    } else {
       alert("Analysis could not be saved.");
     }
   }
@@ -333,220 +210,7 @@ function App() {
 
   // 1. RENDER LOGIN SCREEN IF NOT LOGGED IN
   if (!isLoggedIn) {
-    return (
-      <main className="login-page">
-        <section className="login-left">
-          <div className="brand-row">
-            <div className="brand-icon">✦</div>
-            <div>
-              <h1>D.I.A.L</h1>
-              <p>DAS Individualised AI-Based Learning System</p>
-            </div>
-          </div>
-
-          <div className="login-content">
-            {authView === "login" ? (
-              <>
-                <h2>Welcome back</h2>
-                <p>
-                  Sign in to access student writing analysis, error pattern reports,
-                  and intervention recommendations.
-                </p>
-
-                {authNotice && (
-                  <div style={{ color: "#1e4620", fontWeight: "bold", marginBottom: "1rem" }}>
-                    {authNotice}
-                  </div>
-                )}
-
-                {loginError && (
-                  <div style={{ color: "#d9534f", fontWeight: "bold", marginBottom: "1rem" }}>
-                    {loginError}
-                  </div>
-                )}
-
-                <form onSubmit={handleFormLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                  <div>
-                    <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
-                      Username / Email
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Enter username (e.g. admin1 or therapist1)"
-                      value={usernameInput}
-                      onChange={(e) => setUsernameInput(e.target.value)}
-                      required
-                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="Enter password"
-                      value={passwordInput}
-                      onChange={(e) => setPasswordInput(e.target.value)}
-                      required
-                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="primary-button"
-                    disabled={isLoggingIn}
-                    style={{ cursor: "pointer", marginTop: "0.5rem" }}
-                  >
-                    {isLoggingIn ? "Logging in..." : "Log In"}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() => {
-                      setAuthNotice("");
-                      setSignUpError("");
-                      setAuthView("signup");
-                    }}
-                    style={{ cursor: "pointer" }}
-                  >
-                    Sign Up
-                  </button>
-                </form>
-              </>
-            ) : (
-              <>
-                <h2>Create an account</h2>
-                <p>
-                  Register a new therapist, student, or admin account for D.I.A.L.
-                </p>
-
-                {signUpError && (
-                  <div style={{ color: "#d9534f", fontWeight: "bold", marginBottom: "1rem" }}>
-                    {signUpError}
-                  </div>
-                )}
-
-                <form onSubmit={handleSignUp} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                  <div>
-                    <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
-                      Username / Email
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. therapist1 or user@das.org.sg"
-                      value={signUpUsername}
-                      onChange={(e) => setSignUpUsername(e.target.value)}
-                      required
-                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="Enter password"
-                      value={signUpPassword}
-                      onChange={(e) => setSignUpPassword(e.target.value)}
-                      required
-                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Ms Lim"
-                      value={signUpName}
-                      onChange={(e) => setSignUpName(e.target.value)}
-                      required
-                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
-                      Role
-                    </label>
-                    <select
-                      value={signUpRole}
-                      onChange={(e) => setSignUpRole(e.target.value)}
-                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                    >
-                      <option value="student">Student</option>
-                      <option value="therapist">Therapist</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
-
-                  {signUpRole === "student" && (
-                    <div>
-                      <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "bold" }}>
-                        Date of Birth
-                      </label>
-                      <input
-                        type="date"
-                        value={signUpDateOfBirth}
-                        onChange={(e) => setSignUpDateOfBirth(e.target.value)}
-                        required
-                        style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                      />
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    className="primary-button"
-                    disabled={isSigningUp}
-                    style={{ cursor: "pointer", marginTop: "0.5rem" }}
-                  >
-                    {isSigningUp ? "Creating account..." : "Create Account"}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() => {
-                      setSignUpError("");
-                      setAuthView("login");
-                    }}
-                    style={{ cursor: "pointer" }}
-                  >
-                    Back to Log In
-                  </button>
-                </form>
-              </>
-            )}
-          </div>
-        </section>
-
-        <section className="login-right">
-          <div className="project-card">
-            <span>PROJECT 2026</span>
-            <h2>Error Pattern Analyzer</h2>
-            <p>
-              Helping Educational Therapists review student writing samples,
-              identify recurring error patterns, and generate targeted
-              intervention strategies.
-            </p>
-          </div>
-
-          <div className="uc-card">
-            <strong>UC2</strong>
-            <span>Submit writing samples for analysis</span>
-          </div>
-        </section>
-      </main>
-    );
+    return <LoginPage onLogin={handleLogin} />;
   }
 
   // 2. RENDER MAIN APP AFTER LOGGING IN
@@ -557,22 +221,8 @@ function App() {
       {/* RENDER ADMIN DASHBOARD OR THERAPIST WORKFLOW */}
       {role === "admin" ? (
         <AdminDashboard />
-      ):
-      role === "therapist" ? (
+      ) : role === "therapist" ? (
         <>
-          <section className="hero">
-            <div>
-              <h2>Error Pattern Analyzer & Intervention Recommendation Engine</h2>
-              <p>
-                UC2 frontend workflow: submit a student writing sample, validate the
-                input, call backend analysis, and display diagnostic results for
-                therapist review.
-              </p>
-            </div>
-
-            <div className="status-pill">{backendStatus}</div>
-          </section>
-
           {message && <div className={`message message-${messageTone}`}>{message}</div>}
 
           <div className="layout">
@@ -583,16 +233,10 @@ function App() {
                 onSelect={handleSelectStudent}
               />
 
-              <WritingSampleBank
-                manifest={writingSampleManifest}
-                selectedSampleId={selectedSampleId}
-                onSelectSample={handleSelectWritingSample}
-              />
-
               <WritingSampleForm
                 sampleText={sampleText}
                 selectedStudentId={selectedStudentId}
-                selectedSampleFileName={selectedSampleFileName}
+                selectedSampleFileName=""
                 isAnalysing={isAnalysing}
                 onSampleChange={setSampleText}
                 onAnalyse={handleAnalyseSample}
@@ -602,24 +246,14 @@ function App() {
             <div className="right-column">
               {!analysis && (
                 <History
-				  students={students}
+                  students={students}
                   selectedStudentId={selectedStudentId}
                 />
-/*
-// Old empty state; replaced with history & summary above
-                <section className="empty-state">
-                  <h2>No analysis yet</h2>
-                  <p>
-                    Submit a writing sample to view error categories, AI analysis
-                    notes, and diagnostic recommendations.
-                  </p>
-                </section>
-*/
               )}
 
               {analysis && (
                 <>
-                <p className="results-for">
+                  <p className="results-for">
                     Showing results for{" "}
                     <strong>
                       {students.find((s) => s.id === analysis.studentId)?.name ?? "unknown student"}
@@ -628,8 +262,7 @@ function App() {
 
                   {!analysis.backendAvailable && (
                     <div className="message message-warning">
-                      This result is fallback demo data — the analysis backend was
-                      unreachable when this sample was submitted.
+                      The analysis backend was unreachable when this sample was submitted.
                     </div>
                   )}
                   <ErrorPatternDashboard analysis={analysis} />
@@ -684,11 +317,12 @@ function App() {
             </div>
           </div>
         </>
-      ):
-      /* student */(
-        <>
-        
-        </>
+      ) : (
+        /* student role placeholder */
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <h2>Student View</h2>
+          <p>Welcome, student!</p>
+        </div>
       )}
     </main>
   );
