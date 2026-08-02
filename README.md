@@ -50,6 +50,15 @@ Apply the schema (`server/src/db/schema.sql`):
 cd server
 npm run db:apply
 ```
+Seed Initial Admin Account
+
+Seed the initial system administrator account into PostgreSQL:
+
+```bash
+npm run db:seed
+```
+Username: admin
+Password: admin
 
 Re-running `db:apply`  — if you need to re-apply after wiping data,
 drop and recreate the DB first:
