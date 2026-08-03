@@ -390,3 +390,20 @@ export async function getHistory(studentId: string): Promise<SummaryItem[]> {
   const data = await response.json();
   return data.summary || [];
 }
+
+export async function getAnalysisArray(studentId: string): Promise<AnalysisResult[]> {
+  const response = await fetch(`${BACKEND_URL}/api/history/getanalysis/${studentId}`);
+  console.log(response)
+  if (!response.ok) {
+    throw new Error("Failed to fetch student analysis data.");
+  }
+
+  const analysis: AnalysisResult[] = await response.json();
+  console.log(analysis)
+  return analysis || [];
+}
+
+export async function getCohortAverages(): Promise<Record<ErrorCategory, number>> {
+  const response = await fetch(`${BACKEND_URL}/api/history/cohort-average`);
+  return await response.json();
+}

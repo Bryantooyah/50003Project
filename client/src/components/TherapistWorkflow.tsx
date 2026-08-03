@@ -7,6 +7,8 @@ import ErrorPatternDashboard from "./ErrorPatternDashboard";
 import ErrorTable from "./ErrorTable";
 import RecommendationCard from "./RecommendationCard";
 import History from "./History";
+import LongitudinalView from "./LongitudinalView";
+import { getAnalysisArray } from "../services/api";
 import {
   analyseWritingSample,
   checkBackendHealth,
@@ -36,6 +38,7 @@ export default function TherapistWorkflow({
 }: TherapistWorkflowProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [analysisArray, setAnalysisArray] = useState<AnalysisResult[]>([])
   const [sampleText, setSampleText] = useState("");
 
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -100,11 +103,16 @@ export default function TherapistWorkflow({
     loadBackendStatus();
   }, []);
 
-  function handleSelectStudent(studentId: string) {
+  async function handleSelectStudent(studentId: string) {
     if (studentId === selectedStudentId) return;
-
+    if (studentId == ''){
+      setSelectedStudentId(studentId);
+      setAnalysisArray([]);
+      return;
+    }
     setSelectedStudentId(studentId);
-
+    const result = await getAnalysisArray(studentId);
+    setAnalysisArray(result);
     // Switching students mid-session must not leave the previous student's
     // sample text or analysis results on screen — that's a real
     // accuracy/reliability risk, not just stale UI.
@@ -270,6 +278,14 @@ export default function TherapistWorkflow({
           </div>
 
           <div className="right-column">
+            {analysisArray.length > 2  &&(
+              <LongitudinalView analysis={analysisArray} />)}
+              {analysisArray.length < 3 && (
+                <section className="card">
+                <h2>Not enough analysis performed yet</h2>
+                <p>Please submit document/text and perform analysis</p>
+                </section>
+              )}
             {!analysis && (
               <History
                 students={students}

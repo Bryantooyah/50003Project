@@ -1,4 +1,4 @@
-import { AnalysisResult, Recommendation, WritingSample, TherapistNote } from '../types';
+import { AnalysisResult, Recommendation, WritingSample, TherapistNote, ErrorCategory } from '../types';
 import { pool } from './index';
 
 export async function saveWritingSample(
@@ -43,4 +43,41 @@ export async function getTherapistNotes(studentId: string): Promise<TherapistNot
     [studentId]
   );
   return res.rows;
+}
+
+export async function getCohortAverages(): Promise<Record<ErrorCategory, number>> {
+  const { rows } = await pool.query(
+    `SELECT ai_analysis FROM writing_samples WHERE ai_analysis IS NOT NULL`
+  );
+  const totalSamples = rows.length;
+  const totals: Record<ErrorCategory, number> = {
+    phonological: 0,
+    orthographic: 0,
+    morphological: 0,
+    grammar: 0,
+    other: 0,
+  };
+  if (totalSamples === 0) return totals;
+  for (const row of rows) {
+    const summary = row.ai_analysis?.summary || {};
+    totals.phonological += summary.phonological ?? 0;
+    totals.orthographic += summary.orthographic ?? 0;
+    totals.morphological += summary.morphological ?? 0;
+    totals.grammar += summary.grammar ?? 0;
+    totals.other += summary.other ?? 0;
+  }
+  console.log({
+    phonological: Number((totals.phonological / totalSamples).toFixed(1)),
+    orthographic: Number((totals.orthographic / totalSamples).toFixed(1)),
+    morphological: Number((totals.morphological / totalSamples).toFixed(1)),
+    grammar: Number((totals.grammar / totalSamples).toFixed(2)),
+    other: Number((totals.other / totalSamples).toFixed(2)),
+  });
+  return {
+    phonological: Number((totals.phonological / totalSamples).toFixed(1)),
+    orthographic: Number((totals.orthographic / totalSamples).toFixed(1)),
+    morphological: Number((totals.morphological / totalSamples).toFixed(1)),
+    grammar: Number((totals.grammar / totalSamples).toFixed(2)),
+    other: Number((totals.other / totalSamples).toFixed(2)),
+  };
 }

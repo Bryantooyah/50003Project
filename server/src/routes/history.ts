@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {saveTherapistNote, saveWritingSample, getTherapistNotes, getWritingSamples} from '../db/history';
 import { AnalysisResult, Recommendation, SummaryItem, TherapistNote, WritingSample } from '../types';
+import { getCohortAverages } from '../db/history';
 
 const router = Router();
 
@@ -67,6 +68,22 @@ router.get('/get/:studentId', async (req, res) => {
 	} catch (err: any) {
 		res.status(500).json({ error: err.message });
 	}
+});
+router.get("/getanalysis/:studentId", async (req, res) => {
+	const studentId = req.params.studentId;
+	if (!studentId) {
+		res.status(400).json({ error: "No student ID was provided." });
+	} else {
+		const rows = await getWritingSamples(studentId);
+		console.log(rows)
+		const returnVal = rows.map((row: any) => row.ai_analysis);
+		console.log(returnVal)
+		res.json(returnVal);}
+});
+
+router.get("/cohort-average", async (req, res) => {
+	const averages = await getCohortAverages();
+	res.json(averages);
 });
 
 export default router;
