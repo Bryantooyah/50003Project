@@ -68,18 +68,6 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     }
   }
 
-  function handleDemoAdminLogin() {
-    localStorage.setItem("userId", "demo-admin");
-    localStorage.setItem("userRole", "admin");
-    const demoUser: LoggedInUser = {
-      id: "demo-admin",
-      name: "Admin Demo",
-      role: "admin",
-    };
-    onLoginSuccess(demoUser);
-    navigate("/admin", { replace: true });
-  }
-
   return (
     <main className="login-page">
       <section className="login-left">
@@ -172,15 +160,6 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             >
               {isLoggingIn ? "Logging in..." : "Log In"}
             </button>
-
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={handleDemoAdminLogin}
-              style={{ cursor: "pointer" }}
-            >
-              Continue as Admin Demo
-            </button>
           </form>
         </div>
       </section>
@@ -197,6 +176,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
         </div>
 
         <div className="uc-card">
+          <strong>UC2</strong>
           <span>Submit writing samples for analysis</span>
         </div>
       </section>
