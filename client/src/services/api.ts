@@ -118,6 +118,23 @@ export async function assignTherapistToStudent(
   return data;
 }
 
+export async function resetPassword(
+  userId: string,
+  newPassword: string
+): Promise<any> {
+  const response = await fetch(`${BACKEND_URL}/api/admin/reset-password`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ userId, newPassword }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to reset password");
+  }
+  return data;
+}
+
 export async function getTherapistStudents(therapistId: string): Promise<Student[]> {
   const response = await fetch(`${BACKEND_URL}/api/admin/therapist/${therapistId}/students`, {
     headers: getAuthHeaders(),

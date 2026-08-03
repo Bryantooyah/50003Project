@@ -50,15 +50,19 @@ Apply the schema (`server/src/db/schema.sql`):
 cd server
 npm run db:apply
 ```
+
 Seed Initial Admin Account
 
-Seed the initial system administrator account into PostgreSQL:
+Set `SEED_ADMIN_PASSWORD` in `server/.env` first — the script refuses to run
+without it (no weak hardcoded default), then seed the initial system
+administrator account into PostgreSQL:
 
 ```bash
 npm run db:seed
 ```
-Username: admin
-Password: admin
+
+Username: `admin`
+Password: whatever you set `SEED_ADMIN_PASSWORD` to
 
 Re-running `db:apply`  — if you need to re-apply after wiping data,
 drop and recreate the DB first:
@@ -101,24 +105,24 @@ npm test
 Tests create their own rows with randomized usernames and clean them up in
 `afterAll`, so re-running `npm test` repeatedly against the same DB is safe.
 
-Current coverage is UC1 only — all 9 test cases from the report's §4.1 UC1
-Test Plan (U1–U4, I1–I4, E2E1) are automated:
+All test files live flat in [`server/tests/`](server/tests/) (not nested
+next to source). Current coverage is UC1 only:
 
-- [`server/src/utils/password.test.ts`](server/src/utils/password.test.ts) —
+- [`server/tests/password.test.ts`](server/tests/password.test.ts) —
   unit tests for `hashPassword`/`verifyPassword` (UC1-U3).
-- [`server/src/routes/admin.test.ts`](server/src/routes/admin.test.ts) —
-  integration tests against `/api/admin/*` covering account creation
-  validation (UC1-U1/U2), unauthenticated/non-admin rejection (UC1-I4),
-  therapist-student assignment (UC1-I2), therapist-scoped access control, and
-  role-extension row creation (UC1-U4 — every role, including admin, gets a
-  matching row in its extension table). UC1-I3 (duplicate assignment) is deliberately
-  written to assert **today's actual behavior** (silent success, no "already
-  assigned" signal) rather than the not-yet-implemented "should reject"
-  behavior — see the comment in that test.
-- [`server/src/routes/uc1-e2e.test.ts`](server/src/routes/uc1-e2e.test.ts) —
+- [`server/tests/admin.test.ts`](server/tests/admin.test.ts) —
+  integration tests against `/api/admin/*`: account creation validation
+  (UC1-U1/U2, plus student creation with no `password` field at all),
+  unauthenticated/non-admin rejection (UC1-I4), therapist-student assignment
+  (UC1-I2) including the "already assigned" notification (UC1-I3),
+  therapist-scoped access control, role-extension row creation for every
+  role including admin (UC1-U4), the `GET /api/admin/users` joined
+  `date_of_birth`/`level` fields, and the admin-only password reset endpoint
+  (UC1-I5).
+- [`server/tests/uc1-e2e.test.ts`](server/tests/uc1-e2e.test.ts) —
   UC1-E2E1, the full report-spec'd chain through the *real*
   `POST /api/auth/login` route (not synthetic auth headers like the other
-  files): an admin logs in, creates a therapist and a student, assigns them,
+  file): an admin logs in, creates a therapist and a student, assigns them,
   the newly-created therapist logs in with their own real password, and only
   their assigned student shows up in their scoped view (a second,
   unassigned therapist sees nobody).

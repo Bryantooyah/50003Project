@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  fetchUsers, 
-  createUser, 
-  assignTherapistToStudent, 
-  fetchAssignments
+import {
+  fetchUsers,
+  createUser,
+  assignTherapistToStudent,
+  fetchAssignments,
+  resetPassword
 } from '../services/api';
 
 // Sub-level options mapping based on selected main level
@@ -37,6 +38,11 @@ export const AdminDashboard: React.FC = () => {
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
   const [assignmentSearchQuery, setAssignmentSearchQuery] = useState<string>('');
   const [userSearchQuery, setUserSearchQuery] = useState<string>('');
+
+  // Form State: Reset Password (dedicated section, search + dropdown)
+  const [resetPasswordSearchQuery, setResetPasswordSearchQuery] = useState('');
+  const [resetPasswordUserId, setResetPasswordUserId] = useState('');
+  const [newPasswordInput, setNewPasswordInput] = useState('');
 
   const [statusMessage, setStatusMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -84,6 +90,22 @@ export const AdminDashboard: React.FC = () => {
       u.id?.toLowerCase().includes(query);
 
     return matchesRole && matchesSearch;
+  });
+
+  // Accounts eligible for password reset: students never log in (no real
+  // password to reset), and the system administrator's password is
+  // protected — both are excluded here, and the backend enforces the same
+  // rules independently in case of a direct API call.
+  const resettableUsers = users.filter(
+    (u) => u.role !== 'student' && !(u.role === 'admin' && u.is_system_admin)
+  );
+  const filteredResettableUsers = resettableUsers.filter((u) => {
+    const query = resetPasswordSearchQuery.toLowerCase();
+    return (
+      !query ||
+      u.name?.toLowerCase().includes(query) ||
+      u.username?.toLowerCase().includes(query)
+    );
   });
 
   // Filter assignments table
@@ -154,6 +176,29 @@ export const AdminDashboard: React.FC = () => {
       setSelectedStudentId('');
       
       loadDashboardData();
+    } catch (err: any) {
+      setStatusMessage(`Error: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Submit Handler: Reset Password
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetPasswordUserId || !newPasswordInput) {
+      setStatusMessage('Select an account and enter a new password.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setStatusMessage('');
+      const result = await resetPassword(resetPasswordUserId, newPasswordInput);
+      setStatusMessage(result.message || 'Password reset successfully.');
+
+      setResetPasswordUserId('');
+      setNewPasswordInput('');
     } catch (err: any) {
       setStatusMessage(`Error: ${err.message}`);
     } finally {
@@ -456,6 +501,65 @@ export const AdminDashboard: React.FC = () => {
             )}
           </tbody>
         </table>
+      </section>
+
+      {/* 5. RESET PASSWORD */}
+      <section style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px', marginTop: '2rem', backgroundColor: '#fff' }}>
+        <h2>Reset Password</h2>
+        <p style={{ color: '#666', marginTop: '-0.5rem' }}>
+          Students don't have login accounts and aren't listed here; the
+          system administrator's password can't be changed from this screen.
+        </p>
+        <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Search</label>
+            <input
+              type="text"
+              placeholder="Search by name or username..."
+              value={resetPasswordSearchQuery}
+              onChange={(e) => setResetPasswordSearchQuery(e.target.value)}
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Account</label>
+            <select
+              value={resetPasswordUserId}
+              onChange={(e) => setResetPasswordUserId(e.target.value)}
+              required
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+            >
+              <option value="">-- Select account --</option>
+              {filteredResettableUsers.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name} ({u.username}) — {u.role}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>New Password</label>
+            <input
+              type="password"
+              placeholder="Enter new password"
+              value={newPasswordInput}
+              onChange={(e) => setNewPasswordInput(e.target.value)}
+              required
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="primary-button"
+            style={{ width: 'fit-content', padding: '10px 20px', cursor: 'pointer' }}
+          >
+            {isLoading ? 'Resetting...' : 'Reset Password'}
+          </button>
+        </form>
       </section>
     </div>
   );

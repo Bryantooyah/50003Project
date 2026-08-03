@@ -19,11 +19,19 @@ function parseArgs(argv: string[]) {
 async function seed() {
   const args = parseArgs(process.argv.slice(2))
   
-  // Default values set to admin / admin
+  // Default values: username/role default to a system admin, but the
+  // password must come from a CLI flag or SEED_ADMIN_PASSWORD — no weak
+  // hardcoded fallback.
   const username = args.username ?? 'admin'
-  const password = args.password ?? 'admin'
+  const password = args.password ?? process.env.SEED_ADMIN_PASSWORD
   const name = args.name ?? 'System Administrator'
   const role = args.role ?? 'admin'
+
+  if (!password) {
+    throw new Error(
+      'No password provided. Pass --password=<value> or set SEED_ADMIN_PASSWORD in server/.env.'
+    )
+  }
 
   const client = await pool.connect()
 
@@ -52,9 +60,14 @@ async function seed() {
     );
     const user = rows[0]
 
-    // Insert into role extension table (admins/therapists/students)
+    // Insert into role extension table (admins/therapists/students).
+    // Admin is special-cased: only the seed script's bootstrap admin is
+    // flagged as the (protected) system admin — admins created later via
+    // the dashboard default to is_system_admin = false.
     const roleTable = ROLE_TABLES[role]
-    if (roleTable) {
+    if (roleTable === 'admins') {
+      await client.query('INSERT INTO admins (user_id, is_system_admin) VALUES ($1, true)', [user.id])
+    } else if (roleTable) {
       await client.query(`INSERT INTO ${roleTable} (user_id) VALUES ($1)`, [user.id])
     }
 

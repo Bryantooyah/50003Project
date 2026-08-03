@@ -20,7 +20,8 @@ create table therapists (
 -- No admin-specific columns needed yet, but the table exists now so admin
 -- accounts can be created alongside the others.
 create table admins (
-  user_id uuid primary key references users(id) on delete cascade
+  user_id uuid primary key references users(id) on delete cascade,
+  is_system_admin boolean not null default false
 );
 
 create table students (

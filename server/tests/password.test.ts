@@ -1,4 +1,4 @@
-import { hashPassword, verifyPassword } from './password'
+import { hashPassword, verifyPassword } from '../src/utils/password'
 
 // Automates password hashing testing.
 

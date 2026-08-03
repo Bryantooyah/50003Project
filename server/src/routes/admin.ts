@@ -6,6 +6,9 @@ import {
   assignTherapistToStudent,
   getStudentsForTherapist,
   getAllAssignments,
+  resetPassword,
+  getUserRole,
+  isSystemAdmin,
 } from '../db/admin';
 
 const router = Router();
@@ -109,6 +112,35 @@ router.post('/assign-therapist', requireRole(['admin']), async (req, res) => {
       alreadyAssigned: false,
       message: 'Therapist assigned to student successfully',
     });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/reset-password - Admin resets any user's password (ADMIN ONLY)
+router.post('/reset-password', requireRole(['admin']), async (req, res) => {
+  try {
+    const { userId, newPassword } = req.body;
+    if (!userId || !newPassword) {
+      return res.status(400).json({ error: 'userId and newPassword are required' });
+    }
+
+    const targetRole = await getUserRole(userId);
+    if (!targetRole) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (targetRole === 'student') {
+      return res.status(400).json({ error: 'Students do not have login access; password reset is not applicable.' });
+    }
+    if (targetRole === 'admin' && (await isSystemAdmin(userId))) {
+      return res.status(403).json({ error: "Cannot reset the system administrator's password." });
+    }
+
+    const updated = await resetPassword(userId, newPassword);
+    if (!updated) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ status: 'ok', message: 'Password reset successfully' });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }

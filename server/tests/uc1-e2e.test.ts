@@ -1,8 +1,8 @@
 import crypto from 'crypto'
 import request from 'supertest'
-import app from '../index'
-import { pool } from '../db'
-import { hashPassword } from '../utils/password'
+import app from '../src/index'
+import { pool } from '../src/db'
+import { hashPassword } from '../src/utils/password'
 
 // Automates UC1- End to End Test
 

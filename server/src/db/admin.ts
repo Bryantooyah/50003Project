@@ -62,19 +62,31 @@ export async function createUserWithRole(params: CreateUserParams) {
 
 export async function getAllUsers() {
   const res = await pool.query(
-    `SELECT 
-       u.id, 
-       u.username, 
-       u.name, 
-       u.role, 
+    `SELECT
+       u.id,
+       u.username,
+       u.name,
+       u.role,
        u.created_at,
        s.date_of_birth,
-       s.level
+       s.level,
+       a.is_system_admin
      FROM users u
      LEFT JOIN students s ON u.id = s.user_id
+     LEFT JOIN admins a ON u.id = a.user_id
      ORDER BY u.created_at DESC`
   );
   return res.rows;
+}
+
+export async function getUserRole(userId: string): Promise<string | null> {
+  const res = await pool.query('SELECT role FROM users WHERE id = $1', [userId]);
+  return res.rows[0]?.role ?? null;
+}
+
+export async function isSystemAdmin(userId: string): Promise<boolean> {
+  const res = await pool.query('SELECT is_system_admin FROM admins WHERE user_id = $1', [userId]);
+  return res.rows[0]?.is_system_admin === true;
 }
 
 export async function assignTherapistToStudent(therapistId: string, studentId: string) {
@@ -103,6 +115,12 @@ export async function getStudentsForTherapist(therapistId: string) {
     [therapistId]
   );
   return res.rows;
+}
+
+export async function resetPassword(userId: string, newPassword: string): Promise<boolean> {
+  const passwordHash = await hashPassword(newPassword);
+  const res = await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, userId]);
+  return (res.rowCount ?? 0) > 0;
 }
 
 export async function getAllAssignments() {
