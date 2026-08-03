@@ -12,6 +12,8 @@ type LoginPageProps = {
   onLoginSuccess: (user: LoggedInUser) => void;
 };
 
+const BACKEND_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
+
 export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const navigate = useNavigate();
 
@@ -26,7 +28,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     setIsLoggingIn(true);
 
     try {
-      const res = await fetch("http://localhost:3001/api/auth/login", {
+      const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -39,6 +41,18 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
       if (!res.ok) {
         throw new Error(data.error || "Login failed");
+      }
+
+      // Student accounts have no route in this app. Block the login here,
+      // explicitly, rather than letting it through and hitting the
+      // catch-all "*" route — that would try to navigate to /student,
+      // find no matching route, fall through to the catch-all again, and
+      // loop forever since isLoggedIn would already be true.
+      if (data.user.role === "student") {
+        setLoginError(
+          "Student accounts do not have access to this application."
+        );
+        return;
       }
 
       localStorage.setItem("userId", data.user.id);
@@ -183,7 +197,6 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
         </div>
 
         <div className="uc-card">
-          <strong>UC2</strong>
           <span>Submit writing samples for analysis</span>
         </div>
       </section>

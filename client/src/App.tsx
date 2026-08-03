@@ -1,12 +1,11 @@
-import { useState } from "react";
+
 import { Navigate, Route, Routes } from "react-router-dom";
 import LoginPage from "./components/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
 import { AdminDashboard } from "./components/AdminDashboard";
 import TherapistWorkflow from "./components/TherapistWorkflow";
-import StudentPage from "./components/StudentPage";
-
+import { useEffect, useState } from "react";
 type UserRole = "therapist" | "admin" | "student";
 
 type CurrentUser = {
@@ -26,9 +25,21 @@ function App() {
     setIsLoggedIn(true);
   }
 
+
+  useEffect(() => {
+  const savedUserId = localStorage.getItem("userId");
+  const savedUserRole = localStorage.getItem("userRole") as UserRole | null;
+  const savedName = localStorage.getItem("name");
+
+  if (savedUserId && savedUserRole) {
+    setCurrentUser({ id: savedUserId, role: savedUserRole, name: savedName || savedUserRole });
+    setRole(savedUserRole);
+    setIsLoggedIn(true);
+  }
+}, []);
+
   function handleLogout() {
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userRole");
+    localStorage.clear();
     setIsLoggedIn(false);
     setCurrentUser(null);
     setRole("therapist");
@@ -62,16 +73,6 @@ function App() {
         element={
           <ProtectedRoute isLoggedIn={isLoggedIn} allowedRole="therapist" userRole={role}>
             <TherapistWorkflow currentUser={currentUser} onLogout={handleLogout} />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/student"
-        element={
-          <ProtectedRoute isLoggedIn={isLoggedIn} allowedRole="student" userRole={role}>
-            <Navbar role={role} onLogout={handleLogout} />
-            <StudentPage currentUser={currentUser} />
           </ProtectedRoute>
         }
       />

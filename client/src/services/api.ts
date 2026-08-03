@@ -1,27 +1,27 @@
-import { mockAnalysisResult, mockStudents } from "../data/mockData";
 import type {
   AnalysisResult,
   ErrorCategory,
   LLMOutput,
   Recommendation,
   Student,
+  SummaryItem,
   WritingSampleManifest,
 } from "../types";
 
 const BACKEND_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 /**
  * Helper to get authentication headers.
- * Retrieves session user info or defaults to admin credentials for dev testing.
+ * Throws an error if no active user session exists.
  */
 function getAuthHeaders(): Record<string, string> {
-  const userId = localStorage.getItem("userId") || "admin-dev-id";
-  const userRole = localStorage.getItem("userRole") || "admin";
+  const userId = localStorage.getItem("userId");
+  const userRole = localStorage.getItem("userRole");
+
+  if (!userId || !userRole) {
+    throw new Error("Unauthorized: Please log in first.");
+  }
 
   return {
     "Content-Type": "application/json",
@@ -31,12 +31,9 @@ function getAuthHeaders(): Record<string, string> {
 }
 
 /* ==========================================================================
-   1. Admin API Services
+   1. Admin & Auth API Services
    ========================================================================== */
 
-/**
- * Fetch all user accounts from the database
- */
 export async function fetchUsers(): Promise<any[]> {
   const response = await fetch(`${BACKEND_URL}/api/admin/users`, {
     headers: getAuthHeaders(),
@@ -48,9 +45,6 @@ export async function fetchUsers(): Promise<any[]> {
   return data.users || [];
 }
 
-/**
- * Fetch all therapist-student relationships & assignment dates
- */
 export async function fetchAssignments(): Promise<any[]> {
   const response = await fetch(`${BACKEND_URL}/api/admin/assignments`, {
     headers: getAuthHeaders(),
@@ -62,18 +56,16 @@ export async function fetchAssignments(): Promise<any[]> {
   return data.assignments || [];
 }
 
-/**
- * Create a new user account (student, therapist, or admin)
- */
-export async function createUser(userData: {
+export type CreateUserData = {
   username: string;
-  password: string;
+  password?: string;
   name: string;
-  role: string;
+  role: "student" | "therapist" | "admin" | string;
   dateOfBirth?: string;
-  age?: number;
   level?: string;
-}): Promise<any> {
+};
+
+export async function createUser(userData: CreateUserData): Promise<any> {
   const response = await fetch(`${BACKEND_URL}/api/admin/users`, {
     method: "POST",
     headers: getAuthHeaders(),
@@ -87,9 +79,28 @@ export async function createUser(userData: {
   return data;
 }
 
-/**
- * Assign a Therapist to a Student (inserts into therapist_students)
- */
+export async function updateStudentUser(
+  id: string,
+  data: {
+    name?: string;
+    username?: string;
+    dateOfBirth?: string;
+    level?: string;
+  }
+): Promise<any> {
+  const response = await fetch(`${BACKEND_URL}/api/admin/users/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  const resData = await response.json();
+  if (!response.ok) {
+    throw new Error(resData.error || "Failed to update student profile");
+  }
+  return resData;
+}
+
 export async function assignTherapistToStudent(
   therapistId: string,
   studentId: string
@@ -107,9 +118,6 @@ export async function assignTherapistToStudent(
   return data;
 }
 
-/**
- * Fetch only the students assigned to a specific therapist from PostgreSQL
- */
 export async function getTherapistStudents(therapistId: string): Promise<Student[]> {
   const response = await fetch(`${BACKEND_URL}/api/admin/therapist/${therapistId}/students`, {
     headers: getAuthHeaders(),
@@ -125,17 +133,13 @@ export async function getTherapistStudents(therapistId: string): Promise<Student
     name: s.name,
     age: s.age ?? 0,
     level: s.level ?? "Unspecified",
+    assignedTherapist: therapistId,
   }));
 }
 
 /* ==========================================================================
-   2. Existing UC2 & System API Services
+   2. System & Analysis API Services
    ========================================================================== */
-
-export async function getStudents(): Promise<Student[]> {
-  await delay(300);
-  return mockStudents;
-}
 
 export async function checkBackendHealth(): Promise<{
   status: string;
@@ -151,86 +155,68 @@ export async function checkBackendHealth(): Promise<{
 }
 
 /**
- * Submits the sample to the backend LLM analysis endpoint.
+ * Submits writing sample to backend LLM analysis endpoint.
  *
- * UC2 alt-flow: "backend analysis failure". If the backend cannot be reached,
- * this falls back to demo data so the UI stays usable, but it now reports
- * that honestly via `backendAvailable: false` instead of silently pretending
- * the real analysis succeeded — the therapist needs to know when they're
- * looking at a live result vs a fallback demo result.
+ * NOTE: this deliberately does NOT fall back to demo data on failure —
+ * a real error is thrown and surfaced to the therapist as an explicit
+ * error message. (Earlier drafts of this function had a mock-data
+ * fallback with a "backendAvailable" flag; that behavior was intentionally
+ * dropped in favour of this simpler, more literal reading of the UC2 spec's
+ * "backend analysis failure" alt-flow — see UC2 Test Plan for the update.)
  */
-export async function analyseWritingSample(studentId: string, sampleText: string): Promise<AnalysisResult> {
-  await delay(600);
+export async function analyseWritingSample(
+  studentId: string,
+  sampleText: string
+): Promise<AnalysisResult> {
+  const response = await fetch(`${BACKEND_URL}/api/analyse`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      id: studentId,
+      text: sampleText,
+    }),
+  });
 
-  try {
-    const response = await fetch(`${BACKEND_URL}/api/analyse`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        id: studentId,
-        text: sampleText,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Backend analysis failed");
-    }
-
-    const data: LLMOutput = await response.json();
-
-    let errors = data.issues ?? [];
-    let summary = {
-      phonological: 0,
-      orthographic: 0,
-      morphological: 0,
-      grammar: 0,
-      other: 0
-    };
-    for (const issue of data.issues ?? []) {
-      switch (issue.category) {
-        case "phonological": summary.phonological++; break;
-        case "orthographic": summary.orthographic++; break;
-        case "morphological": summary.morphological++; break;
-        case "grammar": summary.grammar++; break;
-        case "other": summary.other++; break;
-      }
-    }
-    return {
-      errors,
-      summary,
-      id: crypto.randomUUID(),
-      studentId,
-      sampleText,
-      createdAt: new Date().toISOString(),
-      llmOutput: data.comments ?? "",
-      backendAvailable: true,
-    };
-  } catch (error) {
-    console.warn(
-      "Backend LLM unavailable. Falling back to mock structured analysis.",
-      error
-    );
-
-    return {
-      ...mockAnalysisResult,
-      id: crypto.randomUUID(),
-      studentId,
-      sampleText,
-      createdAt: new Date().toISOString(),
-      llmOutput:
-        "Backend analysis endpoint was unavailable, so this is fallback structured mock analysis for demo purposes. No live LLM output was generated.",
-      backendAvailable: false,
-    };
+  if (!response.ok) {
+    throw new Error("Backend analysis endpoint failed.");
   }
+
+  const data: LLMOutput = await response.json();
+
+  let errors = data.issues ?? [];
+  let summary = {
+    phonological: 0,
+    orthographic: 0,
+    morphological: 0,
+    grammar: 0,
+    other: 0,
+  };
+
+  for (const issue of data.issues ?? []) {
+    switch (issue.category) {
+      case "phonological": summary.phonological++; break;
+      case "orthographic": summary.orthographic++; break;
+      case "morphological": summary.morphological++; break;
+      case "grammar": summary.grammar++; break;
+      case "other": summary.other++; break;
+    }
+  }
+
+  return {
+    errors,
+    summary,
+    id: crypto.randomUUID(),
+    studentId,
+    sampleText,
+    createdAt: new Date().toISOString(),
+    llmOutput: data.comments ?? "",
+    backendAvailable: true,
+  };
 }
 
 export async function generateRecommendations(
   analysis: AnalysisResult
 ): Promise<Recommendation[]> {
-  await delay(500);
-
   const recommendations: Recommendation[] = [];
 
   const addRecommendation = (
@@ -318,12 +304,14 @@ export async function getWritingSampleManifest(): Promise<WritingSampleManifest>
   return response.json();
 }
 
+/* ==========================================================================
+   3. Handwriting OCR (client-upload path)
+   ========================================================================== */
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
-      // reader.result is a data URL like "data:image/jpeg;base64,AAAA..."
-      // strip the prefix, the backend only wants the raw base64 payload.
       const result = reader.result as string;
       const base64 = result.split(",")[1] ?? "";
       resolve(base64);
@@ -340,8 +328,9 @@ function fileToBase64(file: File): Promise<string> {
  * uses the LLM's vision capability instead, which reads much more reliably
  * by inferring likely words from context rather than raw letter shapes.
  *
- * Same honesty pattern as analyseWritingSample: reports whether this came
- * from the real backend or not, rather than silently falling back.
+ * Still reports whether this came from the real backend, since the
+ * frontend falls back to local Tesseract OCR if this is unavailable —
+ * that fallback logic lives in WritingSampleForm.tsx, not here.
  */
 export async function extractTextFromImage(
   file: File
@@ -369,4 +358,35 @@ export async function extractTextFromImage(
     );
     return { text: "", backendAvailable: false };
   }
+}
+
+/* ==========================================================================
+   4. History Services (UC4)
+   ========================================================================== */
+
+export async function saveHistory(
+  therapistId: string,
+  analysis: AnalysisResult,
+  recommendations: Recommendation[],
+  feedback: string
+): Promise<boolean> {
+  const response = await fetch(`${BACKEND_URL}/api/history/save`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ therapistId, analysis, recommendations, feedback }),
+  });
+  return response.ok;
+}
+
+export async function getHistory(studentId: string): Promise<SummaryItem[]> {
+  const response = await fetch(`${BACKEND_URL}/api/history/get/${studentId}`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch student history.");
+  }
+
+  const data = await response.json();
+  return data.summary || [];
 }

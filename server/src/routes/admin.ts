@@ -53,10 +53,10 @@ router.post('/users', requireRole(['admin']), async (req, res) => {
   try {
     const { username, password, name, role, dateOfBirth, level } = req.body;
 
-    // 1. Basic Incomplete Profile Validation
-    if (!username || !password || !name || !role) {
+    // 1. Basic Incomplete Profile Validation (Password ONLY required for staff)
+    if (!username || !name || !role || (role !== 'student' && !password)) {
       return res.status(400).json({ 
-        error: 'Incomplete profile: username, password, name, and role are required.' 
+        error: 'Incomplete profile: username, name, and role are required (password required for staff).' 
       });
     }
 
@@ -76,7 +76,12 @@ router.post('/users', requireRole(['admin']), async (req, res) => {
       }
     }
 
-    const user = await createUserWithRole({ username, password, name, role, dateOfBirth, level });
+    // Construct user payload matching CreateUserParams discriminated union
+    const userData = role === 'student'
+      ? { username, name, role: 'student' as const, dateOfBirth, level }
+      : { username, password, name, role: role as 'therapist' | 'admin' };
+
+    const user = await createUserWithRole(userData);
     res.status(201).json({ status: 'ok', user });
   } catch (err: any) {
     res.status(400).json({ error: err.message });

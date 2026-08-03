@@ -27,6 +27,16 @@ export type LLMOutput = {
   comments: string; 
 };
 
+// Shape returned by GET /api/history/get/:studentId — one entry per past
+// writing sample, with a 5x3 matrix (category x severity) of error counts.
+// Inferred from server/src/routes/history.ts's actual response shape:
+// rows = [phonological, orthographic, morphological, grammar, other],
+// columns = [low, medium, high].
+export type SummaryItem = {
+  createdAt: string;
+  summary: number[][];
+};
+
 export type AnalysisResult = {
   id: string;
   studentId: string;

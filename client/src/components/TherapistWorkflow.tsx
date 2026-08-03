@@ -6,12 +6,14 @@ import WritingSampleBank from "./WritingSampleBank";
 import ErrorPatternDashboard from "./ErrorPatternDashboard";
 import ErrorTable from "./ErrorTable";
 import RecommendationCard from "./RecommendationCard";
+import History from "./History";
 import {
   analyseWritingSample,
   checkBackendHealth,
   generateRecommendations,
   getTherapistStudents,
   getWritingSampleManifest,
+  saveHistory,
 } from "../services/api";
 import type {
   AnalysisResult,
@@ -169,15 +171,7 @@ export default function TherapistWorkflow({
       });
 
       setRecommendations([]);
-
-      if (result.backendAvailable) {
-        announce("Analysis completed successfully.", "success");
-      } else {
-        announce(
-          "Backend analysis service is unavailable. Showing fallback demo results — this is not live LLM output.",
-          "warning"
-        );
-      }
+      announce("Analysis completed successfully.", "success");
     } catch {
       announce(
         "Analysis failed. Please check the backend connection and try again.",
@@ -214,6 +208,21 @@ export default function TherapistWorkflow({
     announce(`Recommendation ${status}. Therapist feedback recorded.`, "success");
   }
 
+  async function handleSaveAnalysis() {
+    if (!currentUser?.id || !analysis) {
+      announce("Analysis could not be saved.", "error");
+      return;
+    }
+
+    const saved = await saveHistory(currentUser.id, analysis, recommendations, "");
+
+    if (saved) {
+      announce("Analysis saved.", "success");
+    } else {
+      announce("Analysis could not be saved.", "error");
+    }
+  }
+
   return (
     <main>
       <Navbar role="therapist" onLogout={onLogout} />
@@ -222,7 +231,7 @@ export default function TherapistWorkflow({
         <div>
           <h2>Error Pattern Analyzer &amp; Intervention Recommendation Engine</h2>
           <p>
-            Submit a student writing sample, validate
+            UC2 frontend workflow: submit a student writing sample, validate
             the input, call backend analysis, and display diagnostic results
             for therapist review.
           </p>
@@ -262,13 +271,10 @@ export default function TherapistWorkflow({
 
           <div className="right-column">
             {!analysis && (
-              <section className="card empty-state">
-                <h2>No analysis yet</h2>
-                <p className="muted">
-                  Submit a writing sample to view error categories, AI
-                  analysis notes, and diagnostic recommendations.
-                </p>
-              </section>
+              <History
+                students={students}
+                selectedStudentId={selectedStudentId}
+              />
             )}
 
             {analysis && (
@@ -280,13 +286,6 @@ export default function TherapistWorkflow({
                       ?.name ?? "unknown student"}
                   </strong>
                 </p>
-
-                {!analysis.backendAvailable && (
-                  <div className="message message-warning">
-                    This result is fallback demo data — the analysis backend
-                    was unreachable when this sample was submitted.
-                  </div>
-                )}
 
                 <ErrorPatternDashboard analysis={analysis} />
                 <ErrorTable errors={analysis.errors} />
@@ -327,6 +326,12 @@ export default function TherapistWorkflow({
                       ))}
                     </div>
                   )}
+                </section>
+
+                <section className="card">
+                  <button className="btn btn-primary" onClick={handleSaveAnalysis}>
+                    Save analysis
+                  </button>
                 </section>
               </>
             )}

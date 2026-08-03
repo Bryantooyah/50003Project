@@ -3,8 +3,16 @@ import {
   fetchUsers, 
   createUser, 
   assignTherapistToStudent, 
-  fetchAssignments 
+  fetchAssignments
 } from '../services/api';
+
+// Sub-level options mapping based on selected main level
+const SUB_LEVEL_OPTIONS: Record<string, string[]> = {
+  'Kindergarten': ['K1', 'K2'],
+  'Primary': ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'],
+  'Secondary': ['S1', 'S2', 'S3', 'S4', 'S5'],
+  'Post-Secondary / Adult': ['Tertiary Support', 'Adult Literacy & Profiling'],
+};
 
 export const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
@@ -14,8 +22,12 @@ export const AdminDashboard: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState('student');
+  const [role, setRole] = useState<'student' | 'therapist' | 'admin'>('student');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  
+  // Two-tier Level State for Create Form
+  const [mainLevel, setMainLevel] = useState('');
+  const [subLevel, setSubLevel] = useState('');
 
   // Form State: Assign Relationship
   const [selectedTherapistId, setSelectedTherapistId] = useState('');
@@ -24,7 +36,7 @@ export const AdminDashboard: React.FC = () => {
   // Filter States
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
   const [assignmentSearchQuery, setAssignmentSearchQuery] = useState<string>('');
-  const [userSearchQuery, setUserSearchQuery] = useState<string>(''); // <--- Added Search State
+  const [userSearchQuery, setUserSearchQuery] = useState<string>('');
 
   const [statusMessage, setStatusMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +45,6 @@ export const AdminDashboard: React.FC = () => {
   const loadDashboardData = async () => {
     setIsLoading(true);
     try {
-      // Fetch users safely
       try {
         const usersData = await fetchUsers();
         setUsers(usersData || []);
@@ -41,7 +52,6 @@ export const AdminDashboard: React.FC = () => {
         console.error('Failed to fetch users:', err);
       }
 
-      // Fetch assignments safely
       try {
         const assignmentsData = await fetchAssignments();
         setAssignments(assignmentsData || []);
@@ -57,11 +67,11 @@ export const AdminDashboard: React.FC = () => {
     loadDashboardData();
   }, []);
 
-  // Filter accounts for the assignment dropdowns
+  // Filter accounts for assignment dropdowns
   const therapists = users.filter((u) => u.role === 'therapist');
   const students = users.filter((u) => u.role === 'student');
 
-  // Filter accounts for the Registered Accounts table (by Role AND Search Query)
+  // Filter accounts for Registered Accounts table
   const filteredUsers = users.filter((u) => {
     const matchesRole = selectedRoleFilter === 'all' || u.role === selectedRoleFilter;
     
@@ -76,7 +86,7 @@ export const AdminDashboard: React.FC = () => {
     return matchesRole && matchesSearch;
   });
 
-  // Filter assignments table based on search input
+  // Filter assignments table
   const filteredAssignments = assignments.filter((item) => {
     const query = assignmentSearchQuery.toLowerCase();
     const therapistMatch = item.therapist_name?.toLowerCase().includes(query) || item.therapist_username?.toLowerCase().includes(query);
@@ -91,21 +101,33 @@ export const AdminDashboard: React.FC = () => {
       setIsLoading(true);
       setStatusMessage('');
       
-      await createUser({
-        username,
-        password,
-        name,
-        role,
-        dateOfBirth: role === 'student' ? dateOfBirth : undefined,
-      });
+      const formattedLevel = mainLevel && subLevel ? `${mainLevel} (${subLevel})` : undefined;
+
+      const userData = role === 'student' 
+        ? {
+            username,
+            name,
+            role: 'student' as const,
+            dateOfBirth: dateOfBirth || undefined,
+            level: formattedLevel,
+          }
+        : {
+            username,
+            password,
+            name,
+            role: role as 'therapist' | 'admin',
+          };
+
+      await createUser(userData);
 
       setStatusMessage(`User "${username}" created successfully!`);
       
-      // Clear form & reload dashboard data
       setUsername('');
       setPassword('');
       setName('');
       setDateOfBirth('');
+      setMainLevel('');
+      setSubLevel('');
       loadDashboardData();
     } catch (err: any) {
       setStatusMessage(`Error creating user: ${err.message}`);
@@ -126,12 +148,11 @@ export const AdminDashboard: React.FC = () => {
       setIsLoading(true);
       setStatusMessage('');
       const result = await assignTherapistToStudent(selectedTherapistId, selectedStudentId);
-      setStatusMessage(result.message);
+      setStatusMessage(result.message || 'Successfully assigned therapist to student!');
       
       setSelectedTherapistId('');
       setSelectedStudentId('');
       
-      // Refresh assignments table
       loadDashboardData();
     } catch (err: any) {
       setStatusMessage(`Error: ${err.message}`);
@@ -154,25 +175,29 @@ export const AdminDashboard: React.FC = () => {
       <section style={{ padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px', marginBottom: '2rem', backgroundColor: '#fff' }}>
         <h2>Create New Account</h2>
         <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px' }}>
+          
           <div>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Username / Email</label>
-            <input
-              type="text"
-              placeholder="e.g. therapist1 or user@das.org.sg"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Role</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as any)}
               style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-            />
+            >
+              <option value="student">Student</option>
+              <option value="therapist">Therapist</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Password</label>
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
+              {role === 'student' ? 'Student Username / ID' : 'Username / Email'}
+            </label>
             <input
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              type="text"
+              placeholder={role === 'student' ? "e.g. student1" : "e.g. therapist1 or user@das.org.sg"}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
               style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
             />
@@ -182,7 +207,7 @@ export const AdminDashboard: React.FC = () => {
             <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Full Name</label>
             <input
               type="text"
-              placeholder="e.g. Ms Lim"
+              placeholder="e.g. Aaron Tan or Ms Lim"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -190,30 +215,73 @@ export const AdminDashboard: React.FC = () => {
             />
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-            >
-              <option value="student">Student</option>
-              <option value="therapist">Therapist</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-
-          {role === 'student' && (
+          {/* Password field strictly hidden for Students */}
+          {role !== 'student' && (
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Date of Birth</label>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Password</label>
               <input
-                type="date"
-                value={dateOfBirth}
-                onChange={(e) => setDateOfBirth(e.target.value)}
+                type="password"
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
                 style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
               />
             </div>
+          )}
+
+          {/* Student specific details with two-tier dropdowns */}
+          {role === 'student' && (
+            <>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Date of Birth</label>
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Education Category</label>
+                <select
+                  value={mainLevel}
+                  onChange={(e) => {
+                    setMainLevel(e.target.value);
+                    setSubLevel('');
+                  }}
+                  required
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                >
+                  <option value="">-- Select Category --</option>
+                  <option value="Kindergarten">Kindergarten</option>
+                  <option value="Primary">Primary</option>
+                  <option value="Secondary">Secondary</option>
+                  <option value="Post-Secondary / Adult">Post-Secondary / Adult</option>
+                </select>
+              </div>
+
+              {mainLevel && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Specific Level / Grade</label>
+                  <select
+                    value={subLevel}
+                    onChange={(e) => setSubLevel(e.target.value)}
+                    required
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  >
+                    <option value="">-- Select Specific Level --</option>
+                    {SUB_LEVEL_OPTIONS[mainLevel]?.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </>
           )}
 
           <button
@@ -222,7 +290,7 @@ export const AdminDashboard: React.FC = () => {
             className="primary-button"
             style={{ width: 'fit-content', padding: '10px 20px', cursor: 'pointer', marginTop: '0.5rem' }}
           >
-            {isLoading ? 'Creating...' : 'Create User'}
+            {isLoading ? 'Creating...' : 'Create Account'}
           </button>
         </form>
       </section>
@@ -329,7 +397,6 @@ export const AdminDashboard: React.FC = () => {
           <h2>Registered Accounts ({filteredUsers.length})</h2>
           
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* Registered Accounts Search Bar */}
             <input
               type="text"
               placeholder="Search by name, username, ID..."
@@ -338,7 +405,6 @@ export const AdminDashboard: React.FC = () => {
               style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc', minWidth: '220px' }}
             />
 
-            {/* Role Filter */}
             <div>
               <label style={{ marginRight: '0.5rem', fontWeight: 'bold' }}>Filter by Role:</label>
               <select
@@ -359,27 +425,34 @@ export const AdminDashboard: React.FC = () => {
           <thead>
             <tr style={{ backgroundColor: '#f5f5f5' }}>
               <th>Name</th>
-              <th>Username</th>
+              <th>Username / ID</th>
               <th>Role</th>
-              <th>ID (UUID)</th>
+              <th>DOB</th>
+              <th>Education Level</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ textAlign: 'center', color: '#666', padding: '1rem' }}>
+                <td colSpan={5} style={{ textAlign: 'center', color: '#666', padding: '1rem' }}>
                   No accounts found matching search or role filter.
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((u) => (
-                <tr key={u.id}>
-                  <td>{u.name}</td>
-                  <td>{u.username}</td>
-                  <td><strong>{u.role}</strong></td>
-                  <td style={{ fontSize: '0.8rem', color: '#666' }}>{u.id}</td>
-                </tr>
-              ))
+              filteredUsers.map((u) => {
+                const isStudent = u.role === 'student';
+                const formattedDob = u.date_of_birth ? new Date(u.date_of_birth).toLocaleDateString() : 'N/A';
+
+                return (
+                  <tr key={u.id}>
+                    <td><strong>{u.name}</strong></td>
+                    <td>{u.username}</td>
+                    <td><strong>{u.role}</strong></td>
+                    <td>{isStudent ? formattedDob : '—'}</td>
+                    <td>{isStudent ? (u.level || 'Unspecified') : '—'}</td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

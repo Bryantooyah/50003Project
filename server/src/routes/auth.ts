@@ -4,7 +4,7 @@ import { verifyPassword } from '../utils/password';
 
 const router = Router();
 
-// POST /api/auth/login
+// POST /api/auth/login — Authenticate staff (admin / therapist)
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -25,13 +25,18 @@ router.post('/login', async (req, res) => {
 
     const user = userRes.rows[0];
 
-    // 2. Verify password
+    // 2. Reject direct login for student accounts
+    if (user.role === 'student') {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+
+    // 3. Verify password
     const isValid = await verifyPassword(password, user.password_hash);
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    // 3. Return user session data (excluding password_hash)
+    // 4. Return user session data (excluding password_hash)
     res.json({
       status: 'ok',
       user: {

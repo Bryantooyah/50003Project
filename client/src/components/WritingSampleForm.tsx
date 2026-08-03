@@ -143,7 +143,7 @@ export default function WritingSampleForm({
 
   return (
     <section className="card">
-      <h2>UC2: Submit student writing sample</h2>
+      <h2>Submit Student Writing Sample</h2>
       <p className="muted">
         Upload a scanned writing sample to extract text automatically, or
         select a reference sample below, then review the transcription

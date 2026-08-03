@@ -4,6 +4,7 @@ import analyseRouter from './analyse'
 import adminRouter from './admin';
 import authRouter from './auth';
 import ocrRouter from './ocr';
+import historyRouter from './history'
 
 const router = Router();
 
@@ -12,5 +13,6 @@ router.use('/analyse', analyseRouter);
 router.use('/admin', adminRouter);
 router.use('/auth', authRouter);
 router.use('/ocr', ocrRouter);
+router.use('/history', historyRouter);
 
 export default router;

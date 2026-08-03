@@ -60,3 +60,32 @@ export const llmOutputSchema = z.object({
   })),
   comments: z.string()
 });
+
+
+export type WritingSample = {
+	studentId: string,
+	therapistId: string,
+	sampleText: string,
+	analysis: AnalysisResult,
+	recommendations: Recommendation[],
+	therapistFeedback: string,
+	createdAt: string,
+	updatedAt: string
+}
+
+export type TherapistNote = {
+	studentId: string,
+	therapistId: string,
+	note: string
+}
+
+/**
+ * Quick summary of AnalysisResult
+ * 
+ * createdAt: timestamp of AnalysisResult creation
+ * summary: 5x3 array of number, representing [type of error][severity]
+ */
+export type SummaryItem = {
+  createdAt: string,
+  summary: number[][]
+}
