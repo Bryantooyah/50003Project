@@ -197,8 +197,6 @@ export async function analyseWritingSample(studentId: string, sampleText: string
         case "other": summary.other++; break;
       }
     }
-    console.log(errors.length);
-
     return {
       errors,
       summary,
@@ -318,4 +316,57 @@ export async function getWritingSampleManifest(): Promise<WritingSampleManifest>
   }
 
   return response.json();
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // reader.result is a data URL like "data:image/jpeg;base64,AAAA..."
+      // strip the prefix, the backend only wants the raw base64 payload.
+      const result = reader.result as string;
+      const base64 = result.split(",")[1] ?? "";
+      resolve(base64);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Sends an uploaded handwriting scan to the backend's vision-model OCR
+ * endpoint. Handwriting recognition is genuinely hard — a dedicated OCR
+ * engine (Tesseract) struggles badly on messy/cursive handwriting, so this
+ * uses the LLM's vision capability instead, which reads much more reliably
+ * by inferring likely words from context rather than raw letter shapes.
+ *
+ * Same honesty pattern as analyseWritingSample: reports whether this came
+ * from the real backend or not, rather than silently falling back.
+ */
+export async function extractTextFromImage(
+  file: File
+): Promise<{ text: string; backendAvailable: boolean }> {
+  try {
+    const imageBase64 = await fileToBase64(file);
+
+    const response = await fetch(`${BACKEND_URL}/api/ocr`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageBase64, mimeType: file.type }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Backend OCR failed");
+    }
+
+    const data: { text?: string } = await response.json();
+
+    return { text: data.text ?? "", backendAvailable: true };
+  } catch (error) {
+    console.warn(
+      "Backend OCR unavailable. Falling back to local Tesseract OCR.",
+      error
+    );
+    return { text: "", backendAvailable: false };
+  }
 }

@@ -8,7 +8,7 @@ dotenv.config();
 
 const router = Router();
 
-function getOpenAIClient() {
+export function getOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY;
   const baseURL = process.env.OPENAI_BASE_URL;
   const model = process.env.MODEL;

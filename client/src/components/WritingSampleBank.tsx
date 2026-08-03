@@ -32,8 +32,7 @@ export default function WritingSampleBank({
     <section className="card">
       <h2>Client writing sample bank</h2>
       <p className="muted">
-        Select a client-provided writing sample for UC2 analysis. Student
-        names are anonymised in the frontend.
+        Select a client-provided writing sample
       </p>
 
       <label htmlFor="sample-bank">Writing sample</label>

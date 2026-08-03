@@ -1,69 +1,40 @@
 {
   "datasetName": "Writing Edit and Diagram 1",
   "answerKey": [
-    {
-      "questionNo": 1,
-      "question": "he ran",
-      "expectedAnswer": "He ran.",
-      "mark": 1
-    },
-    {
-      "questionNo": 2,
-      "question": "Fox hunts",
-      "expectedAnswer": "Fox hunts.",
-      "mark": 1
-    },
-    {
-      "questionNo": 3,
-      "question": "i sang,",
-      "expectedAnswer": "I sang.",
-      "mark": 1
-    },
-    {
-      "questionNo": 4,
-      "question": "Pam Swims.",
-      "expectedAnswer": "Pam swims.",
-      "mark": 1
-    },
-    {
-      "questionNo": 5,
-      "question": "tom Hops",
-      "expectedAnswer": "Tom hops.",
-      "mark": 1
-    }
+    { "questionNo": 1, "question": "he ran", "expectedAnswer": "He ran.", "mark": 1 },
+    { "questionNo": 2, "question": "Fox hunts", "expectedAnswer": "Fox hunts.", "mark": 1 },
+    { "questionNo": 3, "question": "i sang,", "expectedAnswer": "I sang.", "mark": 1 },
+    { "questionNo": 4, "question": "Pam Swims.", "expectedAnswer": "Pam swims.", "mark": 1 },
+    { "questionNo": 5, "question": "tom Hops", "expectedAnswer": "Tom hops.", "mark": 1 }
   ],
   "samples": [
-    {
-      "id": "sample-001",
-      "displayName": "Student Sample 001",
-      "fileName": "student-121606.jpg",
-      "fileType": "image",
-      "datasetType": "Edit & Diagram 1",
-      "expectedMaxMark": 5
-    },
-    {
-      "id": "sample-002",
-      "displayName": "Student Sample 002",
-      "fileName": "Student-141683.jpg",
-      "fileType": "image",
-      "datasetType": "Edit & Diagram 1",
-      "expectedMaxMark": 5
-    },
-    {
-      "id": "sample-003",
-      "displayName": "Student Sample 003",
-      "fileName": "Student-153072.jpg",
-      "fileType": "image",
-      "datasetType": "Edit & Diagram 1",
-      "expectedMaxMark": 5
-    },
-    {
-      "id": "sample-004",
-      "displayName": "Student Sample 004",
-      "fileName": "Student-167485.pdf",
-      "fileType": "pdf",
-      "datasetType": "Edit & Diagram 1",
-      "expectedMaxMark": 5
-    }
+    { "id": "sample-001", "displayName": "Student Sample 001", "fileName": "student-121606.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-002", "displayName": "Student Sample 002", "fileName": "Student-141683.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-003", "displayName": "Student Sample 003", "fileName": "Student-153072.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-004", "displayName": "Student Sample 004", "fileName": "Student-167485.pdf", "fileType": "pdf", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-005", "displayName": "Student Sample 005", "fileName": "Student-40135.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-006", "displayName": "Student Sample 006", "fileName": "Student-46279.jpeg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-007", "displayName": "Student Sample 007", "fileName": "Student-52713.jpeg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-008", "displayName": "Student Sample 008", "fileName": "Student-53156.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-009", "displayName": "Student Sample 009", "fileName": "Student-56276.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-010", "displayName": "Student Sample 010", "fileName": "Student-60570.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-011", "displayName": "Student Sample 011", "fileName": "Student-63076.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-012", "displayName": "Student Sample 012", "fileName": "Student-63906.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-013", "displayName": "Student Sample 013", "fileName": "Student-82770.jpeg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-014", "displayName": "Student Sample 014", "fileName": "Student-89037.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-015", "displayName": "Student Sample 015", "fileName": "Student-153342.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-016", "displayName": "Student Sample 016", "fileName": "Student-191379.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-017", "displayName": "Student Sample 017", "fileName": "Student-219919.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-018", "displayName": "Student Sample 018", "fileName": "Student-253965.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-019", "displayName": "Student Sample 019", "fileName": "Student-263315.jpeg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-020", "displayName": "Student Sample 020", "fileName": "Student-328585.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-021", "displayName": "Student Sample 021", "fileName": "Student-334944.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-022", "displayName": "Student Sample 022", "fileName": "Student-342207.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-023", "displayName": "Student Sample 023", "fileName": "Student-342283.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-024", "displayName": "Student Sample 024", "fileName": "Student-390968.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-025", "displayName": "Student Sample 025", "fileName": "Student-414210.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-026", "displayName": "Student Sample 026", "fileName": "Student-477330.pdf", "fileType": "pdf", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-027", "displayName": "Student Sample 027", "fileName": "Student-477375.pdf", "fileType": "pdf", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 },
+    { "id": "sample-028", "displayName": "Student Sample 028", "fileName": "Student-530830.jpg", "fileType": "image", "datasetType": "Edit & Diagram 1", "expectedMaxMark": 5 }
   ]
 }

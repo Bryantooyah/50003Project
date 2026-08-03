@@ -1,0 +1,338 @@
+import { useEffect, useState } from "react";
+import Navbar from "./Navbar";
+import StudentSelector from "./StudentSelector";
+import WritingSampleForm from "./WritingSampleForm";
+import WritingSampleBank from "./WritingSampleBank";
+import ErrorPatternDashboard from "./ErrorPatternDashboard";
+import ErrorTable from "./ErrorTable";
+import RecommendationCard from "./RecommendationCard";
+import {
+  analyseWritingSample,
+  checkBackendHealth,
+  generateRecommendations,
+  getTherapistStudents,
+  getWritingSampleManifest,
+} from "../services/api";
+import type {
+  AnalysisResult,
+  Recommendation,
+  Student,
+  WritingSampleFile,
+  WritingSampleManifest,
+} from "../types";
+
+type MessageTone = "info" | "success" | "warning" | "error";
+
+type TherapistWorkflowProps = {
+  currentUser: { id: string; name: string } | null;
+  onLogout: () => void;
+};
+
+export default function TherapistWorkflow({
+  currentUser,
+  onLogout,
+}: TherapistWorkflowProps) {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [sampleText, setSampleText] = useState("");
+
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+
+  const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<MessageTone>("info");
+  const [backendStatus, setBackendStatus] = useState("Backend status unknown");
+  const [isAnalysing, setIsAnalysing] = useState(false);
+
+  const [writingSampleManifest, setWritingSampleManifest] =
+    useState<WritingSampleManifest | null>(null);
+
+  const [selectedSampleId, setSelectedSampleId] = useState("");
+  const [selectedSampleFileName, setSelectedSampleFileName] = useState("");
+
+  function announce(text: string, tone: MessageTone = "info") {
+    setMessage(text);
+    setMessageTone(tone);
+  }
+
+  useEffect(() => {
+    async function loadWritingSamples() {
+      try {
+        const manifest = await getWritingSampleManifest();
+        setWritingSampleManifest(manifest);
+      } catch {
+        announce("Unable to load client writing sample bank.", "error");
+      }
+    }
+
+    loadWritingSamples();
+  }, []);
+
+  // Fetch only students assigned to the logged-in therapist from DB
+  useEffect(() => {
+    async function loadAssignedStudents() {
+      if (currentUser?.id) {
+        try {
+          const assignedStudents = await getTherapistStudents(currentUser.id);
+          setStudents(assignedStudents);
+        } catch (err) {
+          console.error("Failed to load assigned students:", err);
+          announce("Could not load assigned students.", "error");
+        }
+      }
+    }
+
+    loadAssignedStudents();
+  }, [currentUser]);
+
+  useEffect(() => {
+    async function loadBackendStatus() {
+      try {
+        const health = await checkBackendHealth();
+        setBackendStatus(`Backend: ${health.status}, Database: ${health.db}`);
+      } catch {
+        setBackendStatus("Backend unavailable");
+      }
+    }
+
+    loadBackendStatus();
+  }, []);
+
+  function handleSelectStudent(studentId: string) {
+    if (studentId === selectedStudentId) return;
+
+    setSelectedStudentId(studentId);
+
+    // Switching students mid-session must not leave the previous student's
+    // sample text or analysis results on screen — that's a real
+    // accuracy/reliability risk, not just stale UI.
+    if (sampleText || analysis || recommendations.length > 0) {
+      setSampleText("");
+      setSelectedSampleId("");
+      setSelectedSampleFileName("");
+      setAnalysis(null);
+      setRecommendations([]);
+      announce("Switched student. Previous sample and results were cleared.");
+    }
+  }
+
+  function handleSelectWritingSample(sample: WritingSampleFile) {
+    setSelectedSampleId(sample.id);
+    setSelectedSampleFileName(sample.fileName);
+
+    announce(
+      `${sample.displayName} selected. Paste OCR/extracted text before running analysis.`
+    );
+  }
+
+  async function handleAnalyseSample() {
+    const wordCount = sampleText.trim()
+      ? sampleText.trim().split(/\s+/).length
+      : 0;
+
+    if (!selectedStudentId) {
+      announce(
+        "Please select a student before submitting a writing sample.",
+        "error"
+      );
+      return;
+    }
+
+    if (!sampleText.trim()) {
+      announce("Writing sample cannot be empty.", "error");
+      return;
+    }
+
+    if (wordCount < 30) {
+      const confirmShortSample = window.confirm(
+        "This writing sample is below the recommended 30 words. Continue analysis anyway?"
+      );
+
+      if (!confirmShortSample) {
+        announce(
+          "Analysis cancelled. Please provide a longer writing sample.",
+          "warning"
+        );
+        return;
+      }
+    }
+
+    try {
+      setIsAnalysing(true);
+      announce("Analysing writing sample...");
+
+      const result = await analyseWritingSample(selectedStudentId, sampleText);
+
+      setAnalysis({
+        ...result,
+        selectedSampleFileName,
+      });
+
+      setRecommendations([]);
+
+      if (result.backendAvailable) {
+        announce("Analysis completed successfully.", "success");
+      } else {
+        announce(
+          "Backend analysis service is unavailable. Showing fallback demo results — this is not live LLM output.",
+          "warning"
+        );
+      }
+    } catch {
+      announce(
+        "Analysis failed. Please check the backend connection and try again.",
+        "error"
+      );
+    } finally {
+      setIsAnalysing(false);
+    }
+  }
+
+  async function handleGenerateRecommendations() {
+    if (!analysis) {
+      announce("Run an analysis before generating recommendations.", "error");
+      return;
+    }
+
+    const generated = await generateRecommendations(analysis);
+    setRecommendations(generated);
+    announce("Intervention recommendations generated.", "success");
+  }
+
+  function handleUpdateRecommendationStatus(
+    recommendationId: string,
+    status: "accepted" | "rejected"
+  ) {
+    setRecommendations((current) =>
+      current.map((recommendation) =>
+        recommendation.id === recommendationId
+          ? { ...recommendation, status }
+          : recommendation
+      )
+    );
+
+    announce(`Recommendation ${status}. Therapist feedback recorded.`, "success");
+  }
+
+  return (
+    <main>
+      <Navbar role="therapist" onLogout={onLogout} />
+
+      <section className="hero">
+        <div>
+          <h2>Error Pattern Analyzer &amp; Intervention Recommendation Engine</h2>
+          <p>
+            Submit a student writing sample, validate
+            the input, call backend analysis, and display diagnostic results
+            for therapist review.
+          </p>
+        </div>
+
+        <div className="status-pill">{backendStatus}</div>
+      </section>
+
+      <div className="page-body">
+        {message && (
+          <div className={`message message-${messageTone}`}>{message}</div>
+        )}
+
+        <div className="layout">
+          <div className="left-column">
+            <StudentSelector
+              students={students}
+              selectedStudentId={selectedStudentId}
+              onSelect={handleSelectStudent}
+            />
+
+            <WritingSampleBank
+              manifest={writingSampleManifest}
+              selectedSampleId={selectedSampleId}
+              onSelectSample={handleSelectWritingSample}
+            />
+
+            <WritingSampleForm
+              sampleText={sampleText}
+              selectedStudentId={selectedStudentId}
+              selectedSampleFileName={selectedSampleFileName}
+              isAnalysing={isAnalysing}
+              onSampleChange={setSampleText}
+              onAnalyse={handleAnalyseSample}
+            />
+          </div>
+
+          <div className="right-column">
+            {!analysis && (
+              <section className="card empty-state">
+                <h2>No analysis yet</h2>
+                <p className="muted">
+                  Submit a writing sample to view error categories, AI
+                  analysis notes, and diagnostic recommendations.
+                </p>
+              </section>
+            )}
+
+            {analysis && (
+              <>
+                <p className="results-for">
+                  Showing results for{" "}
+                  <strong>
+                    {students.find((student) => student.id === analysis.studentId)
+                      ?.name ?? "unknown student"}
+                  </strong>
+                </p>
+
+                {!analysis.backendAvailable && (
+                  <div className="message message-warning">
+                    This result is fallback demo data — the analysis backend
+                    was unreachable when this sample was submitted.
+                  </div>
+                )}
+
+                <ErrorPatternDashboard analysis={analysis} />
+                <ErrorTable errors={analysis.errors} />
+
+                {analysis.llmOutput && (
+                  <section className="card">
+                    <h2>AI analysis notes</h2>
+                    <p className="muted">
+                      Response generated from the backend LLM analysis
+                      endpoint.
+                    </p>
+                    <div className="llm-output">{analysis.llmOutput}</div>
+                  </section>
+                )}
+
+                <section className="card">
+                  <h2>Proceed to UC3: Intervention recommendations</h2>
+                  <p className="muted">
+                    Recommendations are generated based on detected error
+                    categories and severity.
+                  </p>
+
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleGenerateRecommendations}
+                  >
+                    Generate recommendations
+                  </button>
+
+                  {recommendations.length > 0 && (
+                    <div className="recommendation-list">
+                      {recommendations.map((recommendation) => (
+                        <RecommendationCard
+                          key={recommendation.id}
+                          recommendation={recommendation}
+                          onUpdateStatus={handleUpdateRecommendationStatus}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}

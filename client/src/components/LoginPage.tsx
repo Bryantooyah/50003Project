@@ -1,50 +1,70 @@
-import React, { useState } from 'react';
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 
-type User = {
+type LoggedInUser = {
   id: string;
-  username: string;
   name: string;
-  role: 'admin' | 'therapist' | 'student';
+  role: "admin" | "therapist" | "student";
 };
 
 type LoginPageProps = {
-  onLogin: (user: User) => void;
+  onLoginSuccess: (user: LoggedInUser) => void;
 };
 
-export default function LoginPage({ onLogin }: LoginPageProps) {
-  const [username, setUsername] = useState('admin1');
-  const [password, setPassword] = useState('Secret123');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
+  const navigate = useNavigate();
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const [usernameInput, setUsernameInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  async function handleFormLogin(event: FormEvent) {
     event.preventDefault();
-    setError('');
-    setLoading(true);
+    setLoginError("");
+    setIsLoggingIn(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
+      const res = await fetch("http://localhost:3001/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: usernameInput,
+          password: passwordInput,
+        }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Invalid credentials');
+      if (!res.ok) {
+        throw new Error(data.error || "Login failed");
       }
 
-      // Success: pass user object back to App state
-      onLogin(data.user);
+      localStorage.setItem("userId", data.user.id);
+      localStorage.setItem("userRole", data.user.role);
+      onLoginSuccess(data.user);
+      navigate(`/${data.user.role}`, { replace: true });
     } catch (err: any) {
-      setError(err.message || 'Failed to connect to authentication server');
+      setLoginError(
+        err.message || "Unable to log in. Please check credentials."
+      );
     } finally {
-      setLoading(false);
+      setIsLoggingIn(false);
     }
-  };
+  }
+
+  function handleDemoAdminLogin() {
+    localStorage.setItem("userId", "demo-admin");
+    localStorage.setItem("userRole", "admin");
+    const demoUser: LoggedInUser = {
+      id: "demo-admin",
+      name: "Admin Demo",
+      role: "admin",
+    };
+    onLoginSuccess(demoUser);
+    navigate("/admin", { replace: true });
+  }
 
   return (
     <main className="login-page">
@@ -53,75 +73,118 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           <div className="brand-icon">✦</div>
           <div>
             <h1>D.I.A.L</h1>
-            <p className="muted">DAS Individualised AI-Based Learning System</p>
+            <p>DAS Individualised AI-Based Learning System</p>
           </div>
         </div>
 
-        <h2>Welcome back</h2>
-        <p className="login-subtitle">
-          Sign in to access student writing analysis, error pattern reports,
-          and intervention recommendations.
-        </p>
+        <div className="login-content">
+          <h2>Welcome back</h2>
+          <p>
+            Sign in to access student writing analysis, error pattern
+            reports, and intervention recommendations.
+          </p>
 
-        {error && (
-          <div style={{ color: '#d9534f', marginBottom: '1rem', fontWeight: 500 }}>
-            {error}
-          </div>
-        )}
+          {loginError && (
+            <div
+              style={{
+                color: "#d9534f",
+                fontWeight: "bold",
+                marginBottom: "1rem",
+              }}
+            >
+              {loginError}
+            </div>
+          )}
 
-        <form className="login-form" onSubmit={handleSubmit}>
-          <label>
-            Email / Username
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username or email"
-              required
-            />
-          </label>
-
-          <label>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-              required
-            />
-          </label>
-
-          <button type="submit" disabled={loading}>
-            {loading ? 'Logging in...' : 'Log In'}
-          </button>
-
-          <button
-            type="button"
-            className="secondary-login"
-            onClick={() =>
-              onLogin({
-                id: 'demo-admin-id',
-                username: 'admin_demo',
-                name: 'Admin Demo User',
-                role: 'admin',
-              })
-            }
+          <form
+            onSubmit={handleFormLogin}
+            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
           >
-            Continue as admin demo
-          </button>
-        </form>
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "0.25rem",
+                  fontWeight: "bold",
+                }}
+              >
+                Username / Email
+              </label>
+              <input
+                type="text"
+                placeholder="Enter username (e.g. admin1 or therapist1)"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                required
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "0.25rem",
+                  fontWeight: "bold",
+                }}
+              >
+                Password
+              </label>
+              <input
+                type="password"
+                placeholder="Enter password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                required
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={isLoggingIn}
+              style={{ cursor: "pointer", marginTop: "0.5rem" }}
+            >
+              {isLoggingIn ? "Logging in..." : "Log In"}
+            </button>
+
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleDemoAdminLogin}
+              style={{ cursor: "pointer" }}
+            >
+              Continue as Admin Demo
+            </button>
+          </form>
+        </div>
       </section>
 
       <section className="login-right">
-        <div className="mission-card">
+        <div className="project-card">
           <span>PROJECT 2026</span>
-          <h3>Error Pattern Analyzer</h3>
+          <h2>Error Pattern Analyzer</h2>
           <p>
-            Helping educational therapists review student writing samples,
+            Helping Educational Therapists review student writing samples,
             identify recurring error patterns, and generate targeted
             intervention strategies.
           </p>
+        </div>
+
+        <div className="uc-card">
+          <strong>UC2</strong>
+          <span>Submit writing samples for analysis</span>
         </div>
       </section>
     </main>
