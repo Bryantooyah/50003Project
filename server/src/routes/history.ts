@@ -15,7 +15,7 @@ router.post('/save', async (req, res, next) => {
 		const studentId = analysis.studentId;
 		const sampleText = analysis.sampleText;
 
-		saveWritingSample(
+		const saved = await saveWritingSample(
 			therapistId,
 			studentId,
 			sampleText,
@@ -23,6 +23,8 @@ router.post('/save', async (req, res, next) => {
 			recommendations,
 			feedback
 		);
+
+		res.status(200).json({ status: 'ok', sample: saved });
 	} catch (err) {
 		next(err);
 	}
@@ -36,7 +38,7 @@ router.get('/get/:studentId', async (req, res) => {
 
 		const summary: SummaryItem[] = samples.map(sample => {
 			
-			let f: number;
+			let f: number = 4;
 			let retVal = [
 				[0, 0, 0],
 				[0, 0, 0],
@@ -44,9 +46,10 @@ router.get('/get/:studentId', async (req, res) => {
 				[0, 0, 0],
 				[0, 0, 0]
 			]
-			const createdAt: string = sample.createdAt;
-			for (let i = 0; i < sample.analysis.errors.length; i++) {
-				const error = sample.analysis.errors[i];
+			const createdAt: string = (sample as any).created_at;
+			const errors = (sample as any).ai_analysis?.errors ?? [];
+			for (let i = 0; i < errors.length; i++) {
+				const error = errors[i];
 				switch (error.category) {
 					case 'phonological': f = 0; break;
 					case 'orthographic': f = 1; break;

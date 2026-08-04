@@ -234,81 +234,25 @@ export async function analyseWritingSample(
 export async function generateRecommendations(
   analysis: AnalysisResult
 ): Promise<Recommendation[]> {
-  const recommendations: Recommendation[] = [];
+  const response = await fetch(`${BACKEND_URL}/api/recommendations/generate`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ analysis }),
+  });
 
-  const addRecommendation = (
-    category: ErrorCategory,
-    title: string,
-    rationale: string,
-    activity: string,
-    count: number
-  ) => {
-    recommendations.push({
-      id: crypto.randomUUID(),
-      title,
-      targetCategory: category,
-      rationale,
-      activity,
-      priority: count >= 2 ? "high" : "medium",
-      status: "pending",
-    });
-  };
-
-  if (analysis.summary.phonological > 0) {
-    addRecommendation(
-      "phonological",
-      "Phonics Discrimination Drill",
-      "The student shows sound-based errors, suggesting difficulty mapping sounds to written forms.",
-      "Use minimal-pair word cards and ask the student to identify, pronounce, and spell similar-sounding words.",
-      analysis.summary.phonological
-    );
+  if (!response.ok) {
+    throw new Error("Failed to generate recommendations.");
   }
 
-  if (analysis.summary.orthographic > 0) {
-    addRecommendation(
-      "orthographic",
-      "Spelling Pattern Practice",
-      "The student shows spelling pattern errors that may require explicit practice with common letter patterns.",
-      "Group words by spelling pattern, then ask the student to sort, copy, and use them in short sentences.",
-      analysis.summary.orthographic
-    );
+  const data = await response.json();
+
+  if (data.status === "insufficient_data") {
+    // Caller (TherapistWorkflow.tsx) can check recommendations.length === 0
+    // and show the UC3 "Insufficient Data" prompt.
+    return [];
   }
 
-  if (analysis.summary.morphological > 0) {
-    addRecommendation(
-      "morphological",
-      "Word Form Awareness Practice",
-      "The student may need support with suffixes, tense endings, or word form changes.",
-      "Use base words and ask the student to form related words using prefixes, suffixes, or tense endings.",
-      analysis.summary.morphological
-    );
-  }
-
-  if (analysis.summary.grammar > 0) {
-    addRecommendation(
-      "grammar",
-      "Sentence Correction Exercise",
-      "The student shows grammar errors that affect sentence accuracy and clarity.",
-      "Give the student incorrect sentences and ask them to identify and rewrite the corrected version.",
-      analysis.summary.grammar
-    );
-  }
-
-  if (analysis.summary.other > 0 || recommendations.length === 0) {
-    recommendations.push({
-      id: crypto.randomUUID(),
-      title: "General Writing Review",
-      targetCategory: "other",
-      rationale:
-        "The writing sample contains issues that require general review and therapist judgement.",
-      activity:
-        "Ask the student to reread the writing sample, identify unclear parts, and rewrite one improved version.",
-      priority: "low",
-      status: "pending",
-    });
-  }
-
-  return recommendations;
+  return data.recommendations as Recommendation[];
 }
 
 export async function getWritingSampleManifest(): Promise<WritingSampleManifest> {

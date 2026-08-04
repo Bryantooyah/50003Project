@@ -14,7 +14,7 @@ export async function saveWritingSample(
      VALUES ($1, $2, $3, $4, $5, $6) 
      ON CONFLICT DO NOTHING 
      RETURNING *`,
-    [studentId, therapistId, sampleText, analysis, recommendations, feedback]
+    [studentId, therapistId, sampleText, JSON.stringify(analysis), JSON.stringify(recommendations), feedback]
   );
   return res.rows[0];
 }
