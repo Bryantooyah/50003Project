@@ -50,7 +50,7 @@ export default function History({ students, selectedStudentId }: HistoryProps) {
         return () => {
             isMounted = false;
         };
-    }, [selectedStudentId, student]);
+    }, [selectedStudentId]);
 
     if (selectedStudentId === "" || student === null) {
         return <h2 className="card">No student selected</h2>;

@@ -38,7 +38,6 @@ router.get('/get/:studentId', async (req, res) => {
 
 		const summary: SummaryItem[] = samples.map(sample => {
 			
-			let f: number = 4;
 			let retVal = [
 				[0, 0, 0],
 				[0, 0, 0],
@@ -46,21 +45,27 @@ router.get('/get/:studentId', async (req, res) => {
 				[0, 0, 0],
 				[0, 0, 0]
 			]
-			const createdAt: string = (sample as any).created_at;
-			const errors = (sample as any).ai_analysis?.errors ?? [];
-			for (let i = 0; i < errors.length; i++) {
-				const error = errors[i];
+			const createdAt: string = sample.createdAt;
+
+			for (let i = 0; i < sample.analysis.errors.length; i++) {
+				let f: number;
+				const error = sample.analysis.errors[i];
 				switch (error.category) {
 					case 'phonological': f = 0; break;
 					case 'orthographic': f = 1; break;
 					case 'morphological': f = 2; break;
 					case 'grammar': f = 3; break;
 					case 'other': f = 4; break;
+					default:
+						console.warn(`Unknown error category: ${error.category}`);
+						continue; // or f = 4 to bucket into "other"
 				}
 				switch (error.severity) {
 					case "low": retVal[f][0]++; break;
 					case "medium": retVal[f][1]++; break;
 					case "high": retVal[f][2]++; break;
+					default:
+						console.warn(`Unknown error severity "${error.severity}" for student ${studentId}, sample created ${createdAt}`);
 				}
 			}
 			return {createdAt, summary: retVal} as SummaryItem;
@@ -72,6 +77,7 @@ router.get('/get/:studentId', async (req, res) => {
 		res.status(500).json({ error: err.message });
 	}
 });
+
 router.get("/getanalysis/:studentId", async (req, res) => {
 	const studentId = req.params.studentId;
 	if (!studentId) {

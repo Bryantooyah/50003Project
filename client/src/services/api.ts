@@ -345,7 +345,8 @@ export async function getHistory(studentId: string): Promise<SummaryItem[]> {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch student history.");
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error || `Failed to fetch student history (${response.status})`);
   }
 
   const data = await response.json();
