@@ -165,20 +165,6 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
       </section>
 
       <section className="login-right">
-        <div className="project-card">
-          <span>PROJECT 2026</span>
-          <h2>Error Pattern Analyzer</h2>
-          <p>
-            Helping Educational Therapists review student writing samples,
-            identify recurring error patterns, and generate targeted
-            intervention strategies.
-          </p>
-        </div>
-
-        <div className="uc-card">
-          <strong>UC2</strong>
-          <span>Submit writing samples for analysis</span>
-        </div>
       </section>
     </main>
   );

@@ -14,15 +14,13 @@ export default function Navbar({ role, onLogout }: NavbarProps) {
         </div>
       </div>
 
-      {role && onLogout ? (
+      {role && onLogout && (
         <div className="session-controls">
           <span>Logged in as {role}</span>
           <button className="logout-button" onClick={onLogout}>
             Log out
           </button>
         </div>
-      ) : (
-        <div className="project-pill">PROJECT 2026</div>
       )}
     </header>
   );

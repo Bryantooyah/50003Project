@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import {saveTherapistNote, saveWritingSample, getTherapistNotes, getWritingSamples} from '../db/history';
+import {saveTherapistNote, saveWritingSample, getTherapistNotes, getWritingSamples, getWritingSamples2} from '../db/history';
 import { AnalysisResult, Recommendation, SummaryItem, TherapistNote, WritingSample } from '../types';
 import { getCohortAverages } from '../db/history';
 
@@ -87,7 +87,7 @@ router.get("/getanalysis/:studentId", async (req, res) => {
 	if (!studentId) {
 		res.status(400).json({ error: "No student ID was provided." });
 	} else {
-		const rows = await getWritingSamples(studentId);
+		const rows = await getWritingSamples2(studentId);
 		const returnVal = rows.map((row: any) => row.ai_analysis);
 		res.json(returnVal);}
 });

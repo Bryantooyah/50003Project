@@ -238,14 +238,7 @@ export default function TherapistWorkflow({
       <section className="hero">
         <div>
           <h2>Error Pattern Analyzer &amp; Intervention Recommendation Engine</h2>
-          <p>
-            UC2 frontend workflow: submit a student writing sample, validate
-            the input, call backend analysis, and display diagnostic results
-            for therapist review.
-          </p>
         </div>
-
-        <div className="status-pill">{backendStatus}</div>
       </section>
 
       <div className="page-body">
