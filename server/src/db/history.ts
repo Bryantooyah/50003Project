@@ -87,3 +87,13 @@ export async function getCohortAverages(): Promise<Record<ErrorCategory, number>
     other: Number((totals.other / totalSamples).toFixed(2)),
   };
 }
+
+export async function getWritingSamples2(studentId: string): Promise<WritingSample[]> {
+  const res = await pool.query(
+    `SELECT *
+     FROM writing_samples
+     WHERE student_id = $1`,
+    [studentId]
+  );
+  return res.rows;
+}
