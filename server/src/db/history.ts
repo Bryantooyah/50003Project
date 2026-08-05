@@ -31,9 +31,9 @@ export async function saveTherapistNote(studentId: string, therapistId: string, 
 
 export async function getWritingSamples(studentId: string): Promise<WritingSample[]> {
   const res = await pool.query(
-    `SELECT id, student_id, submitted_by, sample_text,
+    `SELECT id, student_id, submitted_by, sample_text AS "sampleText",
             ai_analysis AS analysis,
-            recommendations, therapist_feedback,
+            recommendations, therapist_feedback AS "therapistFeedback",
             created_at AS "createdAt",
             updated_at AS "updatedAt"
      FROM writing_samples

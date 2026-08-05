@@ -86,6 +86,7 @@ export type TherapistNote = {
  * summary: 5x3 array of number, representing [type of error][severity]
  */
 export type SummaryItem = {
+  wordCount: number
   createdAt: string,
   summary: number[][]
 }

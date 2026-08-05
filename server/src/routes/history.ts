@@ -37,7 +37,6 @@ router.get('/get/:studentId', async (req, res) => {
 		const notes: TherapistNote[] = await getTherapistNotes(studentId);
 
 		const summary: SummaryItem[] = samples.map(sample => {
-			
 			let retVal = [
 				[0, 0, 0],
 				[0, 0, 0],
@@ -68,7 +67,12 @@ router.get('/get/:studentId', async (req, res) => {
 						console.warn(`Unknown error severity "${error.severity}" for student ${studentId}, sample created ${createdAt}`);
 				}
 			}
-			return {createdAt, summary: retVal} as SummaryItem;
+			
+			return {
+				wordCount: sample.sampleText ? (sample.sampleText.match(/\b\w+\b/g) || []).length : 0,
+				createdAt,
+				summary: retVal
+			} as SummaryItem;
 		});
 
 		res.json({ status: 'ok', summary })
@@ -84,9 +88,7 @@ router.get("/getanalysis/:studentId", async (req, res) => {
 		res.status(400).json({ error: "No student ID was provided." });
 	} else {
 		const rows = await getWritingSamples(studentId);
-		console.log(rows)
 		const returnVal = rows.map((row: any) => row.ai_analysis);
-		console.log(returnVal)
 		res.json(returnVal);}
 });
 

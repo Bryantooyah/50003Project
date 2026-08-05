@@ -33,6 +33,7 @@ export type LLMOutput = {
 // rows = [phonological, orthographic, morphological, grammar, other],
 // columns = [low, medium, high].
 export type SummaryItem = {
+  wordCount: number
   createdAt: string;
   summary: number[][];
 };
