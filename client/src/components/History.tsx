@@ -1,6 +1,15 @@
 import type { Student, SummaryItem } from "../types";
 import { useState, useEffect } from 'react';
 import { getHistory } from "../services/api";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 function getStudent(students: Student[], studentId: string): Student | null {
 	for (const student of students) {

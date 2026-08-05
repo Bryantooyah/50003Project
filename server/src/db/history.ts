@@ -45,7 +45,7 @@ export async function getWritingSamples(studentId: string): Promise<WritingSampl
 
 export async function getTherapistNotes(studentId: string): Promise<TherapistNote[]> {
   const res = await pool.query(
-    `SELECT * FROM therapist_notes WHERE student_id = $1`,
+    `SELECT therapist_id AS "therapistId", note FROM therapist_notes WHERE student_id = $1`,
     [studentId]
   );
   return res.rows;
