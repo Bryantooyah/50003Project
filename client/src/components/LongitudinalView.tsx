@@ -62,7 +62,7 @@ export default function LongitudinalView({
       : `Sample ${index + 1}`;
 
     return {
-      id: item.id || `sample-${index}`,
+      id: item.id ? `${item.id}-${index}` : `sample-${index}`,
       date: dateStr,
       count: item.summary?.[selectedCategory] ?? 0,
     };
