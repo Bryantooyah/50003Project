@@ -12,7 +12,7 @@ import {
 } from "recharts";
 
 // Change this to FALSE for prod
-const useMock = true;
+const useMock = false;
 
 function getStudent(students: Student[], studentId: string): Student | null {
   for (const student of students) {
@@ -28,7 +28,7 @@ interface HistoryProps {
   selectedStudentId: string;
 }
 
-// -- demo data, used only when no historyItems prop is supplied ------------
+// == mock data ==
 function generateMockData(): SummaryItem[] {
   const out = [];
   const now = new Date();
@@ -324,8 +324,7 @@ export default function History({ students, selectedStudentId }: HistoryProps) {
         const scores = points.map((p) => p.score);
         const first = scores[0] ?? 0;
         const last = scores[scores.length - 1] ?? 0;
-        const delta =
-          first === 0 ? (last === 0 ? 0 : 100) : Math.round(((last - first) / first) * 100);
+        const delta = first === 0 ? (last === 0 ? 0 : 100) : Math.round(((last - first) / first) * 100);
         return { ...cat, points, delta };
       }),
     [sorted]

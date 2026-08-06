@@ -75,7 +75,25 @@ router.get('/get/:studentId', async (req, res) => {
 			} as SummaryItem;
 		});
 
-		res.json({ status: 'ok', summary })
+		// find most effective recommendations
+		const weightage = (triple: number[]) => triple[0] * 1 + triple[1] * 2 + triple[2] * 3;
+		const delta = (s: SummaryItem, f: SummaryItem) => {
+			const weight_s = (weightage(s.summary[0]) + weightage(s.summary[1]) + weightage(s.summary[2]) + weightage(s.summary[3]) + weightage(s.summary[4])) / s.wordCount;
+			const weight_f = (weightage(f.summary[0]) + weightage(f.summary[1]) + weightage(f.summary[2]) + weightage(f.summary[3]) + weightage(f.summary[4])) / f.wordCount;
+			return weight_s === 0 ? (weight_f === 0 ? 0 : 100) : Math.round(((weight_f - weight_s) / weight_s) * 100);
+		}
+		const length = samples.length;
+		
+		let recList: { rec: Recommendation[], d: number }[] = [];
+		for (let i: number = 0; i < length-1; i++) {
+			const rec = samples[i].recommendations;
+			const d = delta(summary[i], summary[i+1]);
+			recList.push({ rec, d });
+		}
+		recList.sort((a, b) => b.d - a.d);
+
+		const recommendationsRanking: Recommendation[] = recList.map(item => item.rec).flat();
+		res.json({ status: 'ok', summary, recommendationsRanking });
 		
 	} catch (err: any) {
 		res.status(500).json({ error: err.message });
