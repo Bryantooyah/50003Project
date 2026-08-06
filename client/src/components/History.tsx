@@ -1,4 +1,4 @@
-import type { Student, SummaryItem } from "../types";
+import type { Recommendation, Student, SummaryItem } from "../types";
 import { useState, useEffect, useMemo } from "react";
 import { getHistory } from "../services/api";
 import {
@@ -10,6 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import RecommendationCard from "./RecommendationCard"
 
 // Change this to FALSE for prod
 const useMock = false;
@@ -260,6 +261,7 @@ function CategoryDetail({ stat }: { stat: CategoryStat }) {
 
 export default function History({ students, selectedStudentId }: HistoryProps) {
   const [historyItems, setHistoryItems] = useState<SummaryItem[]>([]);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<number>(0);
@@ -276,11 +278,13 @@ export default function History({ students, selectedStudentId }: HistoryProps) {
     setLoading(true);
     setError(null);
     setActiveCategory(0);
+	const history = getHistory(student.id);
 
-    getHistory(student.id)
+	history
       .then((data) => {
         if (isMounted) {
-          setHistoryItems(useMock ? generateMockData() : data);
+          setHistoryItems(useMock ? generateMockData() : data.summary);
+          setRecommendations(useMock ? generateMockData() : data.recommendations);
           setLoading(false);
         }
       })
@@ -290,8 +294,6 @@ export default function History({ students, selectedStudentId }: HistoryProps) {
           setLoading(false);
         }
       });
-
-    
 
     return () => {
       isMounted = false;
@@ -398,6 +400,25 @@ export default function History({ students, selectedStudentId }: HistoryProps) {
           </div>
         </>
       )}
-    </div>
+      <hr></hr>
+      <h2>Accepted recommendations</h2>
+		  <p className="muted">Listed from most improvement per unit time to least improvement per unit time</p>
+	    {recommendations.map((recommendation: Recommendation) => (!recommendation.title) ? <></>: (
+        <article className="recommendation-card">
+          <div className="recommendation-header">
+            <div>
+              <h3>{recommendation.title}</h3>
+              <p className="muted">
+                Category: {recommendation.targetCategory} | Priority:{" "}
+                {recommendation.priority}
+              </p>
+            </div>
+            <span className="status-text">{recommendation.status}</span>
+          </div>
+          <p><strong>Rationale:</strong> {recommendation.rationale}</p>
+          <p><strong>Activity:</strong> {recommendation.activity}</p>
+        </article>
+		  ))}
+	</div>
   );
 }

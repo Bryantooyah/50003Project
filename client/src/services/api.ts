@@ -4,7 +4,6 @@ import type {
   LLMOutput,
   Recommendation,
   Student,
-  SummaryItem,
   WritingSampleManifest,
 } from "../types";
 
@@ -339,7 +338,7 @@ export async function saveHistory(
   return response.ok;
 }
 
-export async function getHistory(studentId: string): Promise<SummaryItem[]> {
+export async function getHistory(studentId: string) {
   const response = await fetch(`${BACKEND_URL}/api/history/get/${studentId}`, {
     headers: getAuthHeaders(),
   });
@@ -350,7 +349,10 @@ export async function getHistory(studentId: string): Promise<SummaryItem[]> {
   }
 
   const data = await response.json();
-  return data.summary || [];
+
+  const summary = data.summary;
+  const recommendations = data.recommendationsRanking;
+  return { summary, recommendations };
 }
 
 export async function getAnalysisArray(studentId: string): Promise<AnalysisResult[]> {
