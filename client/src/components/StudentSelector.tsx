@@ -12,7 +12,7 @@ export default function StudentSelector({
   onSelect,
 }: StudentSelectorProps) {
   return (
-    <section className="card">
+    <section className="card" style={{ marginBottom: "0.85rem", padding: "12px 20px" }}>
       <h2>Select student</h2>
       <p className="muted">
         Only students assigned to you are shown.
@@ -29,11 +29,6 @@ export default function StudentSelector({
           </option>
         ))}
       </select>
-      {!selectedStudentId && (
-        <p className="message message-warning" style={{ marginTop: "0.75rem" }}>
-          ⚠️ Please select a student to begin.
-        </p>
-      )}
     </section>
   );
 }

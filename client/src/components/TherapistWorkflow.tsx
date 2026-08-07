@@ -279,6 +279,7 @@ export default function TherapistWorkflow({
   };
 
   const [activeTab, setActiveTab] = useState<"analysis" | "recommendations" | "progress">("analysis");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
     <main>
@@ -302,52 +303,64 @@ export default function TherapistWorkflow({
           </div>
         ) : message ? (
           <div className={`message message-${messageTone}`}>{message}</div>
-        ) : (
-          !selectedStudentId && (
-            <div className="message message-warning" style={{ padding: "8px 14px", marginBottom: "0.75rem", fontSize: "0.88rem" }}>
-              ⚠️ Please select a student to begin.
-            </div>
-          )
-        )}
+        ) : null}
 
         {/* Global Top Bar: Student Selection */}
-        <section className="card" style={{ marginBottom: "0.85rem", padding: "12px 20px" }}>
-          <StudentSelector
-            students={students}
-            selectedStudentId={selectedStudentId}
-            onSelect={handleSelectStudent}
-          />
-        </section>
+        <StudentSelector
+          students={students}
+          selectedStudentId={selectedStudentId}
+          onSelect={handleSelectStudent}
+        />
 
         {/* Tab Navigation */}
-        <div className="therapist-tabs" style={{ marginBottom: "0.85rem", paddingBottom: "6px" }}>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "analysis" ? "active" : ""}`}
-            onClick={() => setActiveTab("analysis")}
-          >
-            Writing Sample &amp; Analysis
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "recommendations" ? "active" : ""}`}
-            onClick={() => setActiveTab("recommendations")}
-          >
-            Intervention Recommendations
-            {recommendations.length > 0 && <span className="tab-badge">{recommendations.length}</span>}
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "progress" ? "active" : ""}`}
-            onClick={() => setActiveTab("progress")}
-          >
-            Progress &amp; History
-            {analysisArray.length > 0 && <span className="tab-badge">{analysisArray.length}</span>}
-          </button>
-        </div>
+        <div className="side-tabs-wrapper">
+          <div className="side-tabs" style={{ display: isSidebarCollapsed ? "none" : "flex" }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsSidebarCollapsed(true)}
+              style={{ padding: "8px 12px", fontSize: "0.88rem", marginBottom: "4px", width: "100%", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+              title="Hide menu"
+            >
+              ☰ Menu
+            </button>
+            <button
+              type="button"
+              className={`tab-btn side-tab-btn ${activeTab === "analysis" ? "active" : ""}`}
+              onClick={() => setActiveTab("analysis")}
+            >
+              Writing Sample &amp; Analysis
+            </button>
+            <button
+              type="button"
+              className={`tab-btn side-tab-btn ${activeTab === "recommendations" ? "active" : ""}`}
+              onClick={() => setActiveTab("recommendations")}
+            >
+              Intervention Recommendations
+            </button>
+            <button
+              type="button"
+              className={`tab-btn side-tab-btn ${activeTab === "progress" ? "active" : ""}`}
+              onClick={() => setActiveTab("progress")}
+            >
+              Progress &amp; History
+            </button>
+          </div>
 
-        {/* TAB 1: Writing Sample & Analysis */}
-        {activeTab === "analysis" && (
+          <div className="side-tab-content">
+            {isSidebarCollapsed && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setIsSidebarCollapsed(false)}
+                style={{ padding: "8px 14px", fontSize: "0.88rem", marginBottom: "1.25rem", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                title="Show menu"
+              >
+                ☰ Menu
+              </button>
+            )}
+            {/* TAB 1: Writing Sample & Analysis */}
+            {activeTab === "analysis" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
             {/* Input Row: Writing Sample Bank & Submit Form side-by-side (equal height stretch) */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "1.5rem", alignItems: "stretch" }}>
@@ -514,6 +527,8 @@ export default function TherapistWorkflow({
             />
           </div>
         )}
+          </div>
+        </div>
       </div>
     </main>
   );

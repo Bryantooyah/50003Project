@@ -1356,3 +1356,50 @@ th {
   background: var(--sage);
   color: var(--forest-deep);
 }
+
+/* ---------- Side Navigation Tabs ---------- */
+
+.side-tabs-wrapper {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.side-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.side-tab-btn {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 12px 16px;
+  line-height: 1.35;
+}
+
+.side-tab-content {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .side-tabs-wrapper {
+    flex-direction: column;
+  }
+  .side-tabs {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    border-bottom: 2px solid var(--sage-line);
+    padding-bottom: 8px;
+  }
+  .side-tab-btn {
+    width: auto;
+    white-space: nowrap;
+  }
+}
