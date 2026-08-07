@@ -167,6 +167,12 @@ request — fine day-to-day, but worth temporarily bumping `dial-backend`
 a live demo so there's no cold-start delay in front of an audience. Scale
 back down (or delete the services) afterward.
 
+Both `buildCommand`s use `npm install --include=dev` on purpose: Render sets
+`NODE_ENV=production` for the build too, and npm treats that as skipping
+devDependencies by default — which breaks these builds, since `typescript`,
+`ts-node`, and the `@types/*` packages `tsc`/`vite build` need are all
+devDependencies. Don't drop `--include=dev` even though it looks redundant.
+
 `CORS_ORIGIN` and `DATABASE_SSL` are the two env vars this setup added
 beyond local dev — locally, leave both unset (`server/src/index.ts` and
 `server/src/db/index.ts` default to the existing localhost/no-SSL
