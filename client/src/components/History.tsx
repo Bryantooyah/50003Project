@@ -402,9 +402,9 @@ export default function History({ students, selectedStudentId }: HistoryProps) {
       )}
       <hr></hr>
       <h2>Accepted recommendations</h2>
-		  <p className="muted">Listed from most improvement per unit time to least improvement per unit time</p>
-	    {recommendations.map((recommendation: Recommendation) => (!recommendation.title) ? <></>: (
-        <article className="recommendation-card">
+      <p className="muted">Listed from most improvement per unit time to least improvement per unit time</p>
+      {recommendations.map((recommendation: Recommendation) => (!recommendation.title) ? null : (
+        <article key={recommendation.id} className="recommendation-card">
           <div className="recommendation-header">
             <div>
               <h3>{recommendation.title}</h3>
@@ -418,7 +418,7 @@ export default function History({ students, selectedStudentId }: HistoryProps) {
           <p><strong>Rationale:</strong> {recommendation.rationale}</p>
           <p><strong>Activity:</strong> {recommendation.activity}</p>
         </article>
-		  ))}
+      ))}
 	</div>
   );
 }
