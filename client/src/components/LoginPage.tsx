@@ -148,6 +148,11 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             />
           ))}
 
+          <div className="visual-quote-tagline">
+            <span className="quote-accent">DAS Mission</span>
+            <p>“Empowering those who learn differently, including those with dyslexia, to achieve their true potential.”</p>
+          </div>
+
           <div className="slideshow-dots">
             {SLIDESHOW_IMAGES.map((_, index) => (
               <button
