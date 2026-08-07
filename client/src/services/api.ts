@@ -161,13 +161,22 @@ export async function checkBackendHealth(): Promise<{
   status: string;
   db: string;
 }> {
-  const response = await fetch(`${BACKEND_URL}/api/health`);
-
-  if (!response.ok) {
-    throw new Error("Backend health check failed");
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/health`);
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      return {
+        status: data?.status || "error",
+        db: data?.db || "disconnected",
+      };
+    }
+    return data || { status: "ok", db: "connected" };
+  } catch {
+    return {
+      status: "offline",
+      db: "unreachable",
+    };
   }
-
-  return response.json();
 }
 
 /**

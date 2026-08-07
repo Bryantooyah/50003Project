@@ -97,13 +97,21 @@ export default function TherapistWorkflow({
     async function loadBackendStatus() {
       try {
         const health = await checkBackendHealth();
-        setBackendStatus(`Backend: ${health.status}, Database: ${health.db}`);
+        if (health.status === "offline") {
+          setBackendStatus("Backend server is offline");
+        } else if (health.db === "disconnected") {
+          setBackendStatus("Database is disconnected");
+        } else {
+          setBackendStatus("");
+        }
       } catch {
-        setBackendStatus("Backend unavailable");
+        setBackendStatus("Backend server is offline");
       }
     }
 
     loadBackendStatus();
+    const interval = setInterval(loadBackendStatus, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   async function handleSelectStudent(studentId: string) {
@@ -272,7 +280,11 @@ export default function TherapistWorkflow({
       </section>
 
       <div className="page-body">
-        {message ? (
+        {backendStatus ? (
+          <div className="message message-error">
+            {backendStatus}
+          </div>
+        ) : message ? (
           <div className={`message message-${messageTone}`}>{message}</div>
         ) : (
           !selectedStudentId && (

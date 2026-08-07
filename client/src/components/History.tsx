@@ -10,7 +10,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import RecommendationCard from "./RecommendationCard"
 
 // Change this to FALSE for prod
 const useMock = false;
