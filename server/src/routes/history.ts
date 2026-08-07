@@ -11,7 +11,6 @@ router.post('/save', async (req, res, next) => {
 		const analysis: AnalysisResult = req.body.analysis;
 		const recommendations: Recommendation[] = req.body.recommendations;
 		const feedback: string = req.body.feedback;
-		
 		const studentId = analysis.studentId;
 		const sampleText = analysis.sampleText;
 
@@ -67,7 +66,7 @@ router.get('/get/:studentId', async (req, res) => {
 						console.warn(`Unknown error severity "${error.severity}" for student ${studentId}, sample created ${createdAt}`);
 				}
 			}
-			
+
 			return {
 				wordCount: sample.sampleText ? (sample.sampleText.match(/\b\w+\b/g) || []).length : 0,
 				createdAt,
@@ -83,7 +82,7 @@ router.get('/get/:studentId', async (req, res) => {
 			return weight_s === 0 ? (weight_f === 0 ? 0 : 100) : Math.round(((weight_f - weight_s) / weight_s) * 100);
 		}
 		const length = samples.length;
-		
+
 		let recList: { rec: Recommendation[], d: number }[] = [];
 		for (let i: number = 0; i < length-1; i++) {
 			const rec = samples[i].recommendations;
@@ -94,7 +93,7 @@ router.get('/get/:studentId', async (req, res) => {
 
 		const recommendationsRanking: Recommendation[] = recList.map(item => item.rec).flat();
 		res.json({ status: 'ok', summary, recommendationsRanking });
-		
+
 	} catch (err: any) {
 		res.status(500).json({ error: err.message });
 	}
