@@ -15,7 +15,11 @@ const SUB_LEVEL_OPTIONS: Record<string, string[]> = {
   'Post-Secondary / Adult': ['Tertiary Support', 'Adult Literacy & Profiling'],
 };
 
-export const AdminDashboard: React.FC = () => {
+type AdminDashboardProps = {
+  currentUser?: { id: string; name: string; role: string } | null;
+};
+
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) => {
   const [users, setUsers] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
 
@@ -208,7 +212,10 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-      <h1>Admin Management Dashboard</h1>
+      <h1 style={{ marginBottom: "0.25rem" }}>Welcome back, {currentUser?.name || "Admin"}</h1>
+      <p style={{ color: "#5a6e61", fontSize: "1rem", marginTop: 0, marginBottom: "1.5rem" }}>
+        Admin Management Dashboard
+      </p>
 
       {statusMessage && (
         <div style={{ padding: '12px', marginBottom: '1.5rem', backgroundColor: '#e2f0d9', color: '#1e4620', borderRadius: '6px', fontWeight: 'bold' }}>

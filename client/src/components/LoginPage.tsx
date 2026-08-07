@@ -66,6 +66,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
       localStorage.setItem("userId", data.user.id);
       localStorage.setItem("userRole", data.user.role);
+      localStorage.setItem("name", data.user.name || data.user.username);
       onLoginSuccess(data.user);
       navigate(`/${data.user.role}`, { replace: true });
     } catch (err: any) {
@@ -90,7 +91,6 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
           </div>
 
           <div className="login-content">
-            <h2>Welcome back</h2>
             <p className="login-subtitle">
               Sign in to access student writing analysis, error pattern
               reports, and intervention recommendations.

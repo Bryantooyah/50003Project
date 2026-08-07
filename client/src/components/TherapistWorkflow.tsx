@@ -275,7 +275,12 @@ export default function TherapistWorkflow({
 
       <section className="hero">
         <div>
-          <h2>Error Pattern Analyzer &amp; Intervention Recommendation Engine</h2>
+          <h2 style={{ fontSize: "1.75rem", marginBottom: "0.25rem" }}>
+            Welcome back, {currentUser?.name || "Therapist"}
+          </h2>
+          <p style={{ opacity: 0.9, fontSize: "1rem", margin: 0 }}>
+            Error Pattern Analyzer &amp; Intervention Recommendation Engine
+          </p>
         </div>
       </section>
 

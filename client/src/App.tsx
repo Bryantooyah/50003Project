@@ -63,7 +63,7 @@ function App() {
         element={
           <ProtectedRoute isLoggedIn={isLoggedIn} allowedRole="admin" userRole={role}>
             <Navbar role={role} onLogout={handleLogout} />
-            <AdminDashboard />
+            <AdminDashboard currentUser={currentUser} />
           </ProtectedRoute>
         }
       />
