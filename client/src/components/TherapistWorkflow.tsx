@@ -48,6 +48,9 @@ export default function TherapistWorkflow({
   const [messageTone, setMessageTone] = useState<MessageTone>("info");
   const [backendStatus, setBackendStatus] = useState("Backend status unknown");
   const [isAnalysing, setIsAnalysing] = useState(false);
+  const [isGeneratingRecommendations, setIsGeneratingRecommendations] = useState(false);
+  const [isSavingAnalysis, setIsSavingAnalysis] = useState(false);
+  const [isAnalysisSaved, setIsAnalysisSaved] = useState(false);
 
   const [writingSampleManifest, setWritingSampleManifest] =
     useState<WritingSampleManifest | null>(null);
@@ -122,6 +125,7 @@ export default function TherapistWorkflow({
       setSelectedSampleFileName("");
       setAnalysis(null);
       setRecommendations([]);
+      setIsAnalysisSaved(false);
       announce("Switched student. Previous sample and results were cleared.");
     }
   }
@@ -179,6 +183,7 @@ export default function TherapistWorkflow({
       });
 
       setRecommendations([]);
+      setIsAnalysisSaved(false);
       announce("Analysis completed successfully.", "success");
     } catch {
       announce(
@@ -196,9 +201,17 @@ export default function TherapistWorkflow({
       return;
     }
 
-    const generated = await generateRecommendations(analysis);
-    setRecommendations(generated);
-    announce("Intervention recommendations generated.", "success");
+    try {
+      setIsGeneratingRecommendations(true);
+      announce("Generating recommendations...");
+      const generated = await generateRecommendations(analysis);
+      setRecommendations(generated);
+      announce("Intervention recommendations generated.", "success");
+    } catch {
+      announce("Failed to generate recommendations.", "error");
+    } finally {
+      setIsGeneratingRecommendations(false);
+    }
   }
 
   function handleUpdateRecommendationStatus(
@@ -222,12 +235,29 @@ export default function TherapistWorkflow({
       return;
     }
 
-    const saved = await saveHistory(currentUser.id, analysis, recommendations, "");
+    try {
+      setIsSavingAnalysis(true);
+      announce("Saving analysis...");
+      const saved = await saveHistory(currentUser.id, analysis, recommendations, "");
 
-    if (saved) {
-      announce("Analysis saved.", "success");
-    } else {
+      if (saved) {
+        setIsAnalysisSaved(true);
+        announce("Analysis saved successfully.", "success");
+        if (selectedStudentId) {
+          try {
+            const updated = await getAnalysisArray(selectedStudentId);
+            setAnalysisArray(updated);
+          } catch (err) {
+            console.error("Failed to refresh student analysis history:", err);
+          }
+        }
+      } else {
+        announce("Analysis could not be saved.", "error");
+      }
+    } catch {
       announce("Analysis could not be saved.", "error");
+    } finally {
+      setIsSavingAnalysis(false);
     }
   }
 
@@ -282,7 +312,12 @@ export default function TherapistWorkflow({
             {analysisArray.length < 3 && (
               <section className="card">
                 <h2>Not enough analysis performed yet</h2>
-                <p>Please submit document/text and perform analysis</p>
+                <p>
+                  A minimum of 3 saved analyses is required to unlock longitudinal progress tracking ({analysisArray.length}/3 completed).
+                </p>
+                <p className="muted" style={{ marginTop: "0.5rem" }}>
+                  Please submit and save <strong>{3 - analysisArray.length}</strong> more writing sample {3 - analysisArray.length === 1 ? "analysis" : "analyses"} for this student.
+                </p>
               </section>
             )}
             {!analysis && (
@@ -326,8 +361,13 @@ export default function TherapistWorkflow({
                   <button
                     className="btn btn-primary"
                     onClick={handleGenerateRecommendations}
+                    disabled={isGeneratingRecommendations}
                   >
-                    Generate recommendations
+                    {isGeneratingRecommendations
+                      ? "Generating recommendations..."
+                      : recommendations.length > 0
+                        ? "✓ Recommendations generated (Click to regenerate)"
+                        : "Generate recommendations"}
                   </button>
 
                   {recommendations.length > 0 && (
@@ -344,8 +384,16 @@ export default function TherapistWorkflow({
                 </section>
 
                 <section className="card">
-                  <button className="btn btn-primary" onClick={handleSaveAnalysis}>
-                    Save analysis
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleSaveAnalysis}
+                    disabled={isSavingAnalysis || isAnalysisSaved}
+                  >
+                    {isSavingAnalysis
+                      ? "Saving analysis..."
+                      : isAnalysisSaved
+                        ? "✓ Analysis saved"
+                        : "Save analysis"}
                   </button>
                 </section>
               </>
