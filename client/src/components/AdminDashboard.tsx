@@ -153,7 +153,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
   // Submit Handler: Create User
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !username || !password) {
+    if (!name || !username || (role !== 'student' && !password)) {
       setStatusMessage('Please fill in all required fields.');
       return;
     }
@@ -169,8 +169,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
       const newUserPayload = {
         name,
         username,
-        password,
+        password: role === 'student' ? undefined : password,
         role,
+        dateOfBirth: role === 'student' ? dateOfBirth : undefined,
         date_of_birth: role === 'student' ? dateOfBirth : undefined,
         level: role === 'student' ? subLevel : undefined,
       };
