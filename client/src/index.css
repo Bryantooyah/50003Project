@@ -1299,3 +1299,60 @@ th {
     min-width: 92px;
   }
 }
+
+/* ---------- Therapist Workflow Tabs ---------- */
+
+.therapist-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--sage-line);
+  padding-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+  border: 1px solid var(--border-color);
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  background: var(--sage);
+  color: var(--forest-deep);
+  border-color: #a3b593;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, var(--forest-deep) 0%, var(--forest) 100%);
+  color: #ffffff;
+  border-color: var(--forest-deep);
+  box-shadow: 0 4px 14px rgba(11, 46, 28, 0.22);
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.25);
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 8px;
+  min-width: 20px;
+}
+
+.tab-btn:not(.active) .tab-badge {
+  background: var(--sage);
+  color: var(--forest-deep);
+}

@@ -54,6 +54,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
   const [resetPasswordSearchQuery, setResetPasswordSearchQuery] = useState('');
   const [resetPasswordUserId, setResetPasswordUserId] = useState('');
   const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [resetPasswordMessage, setResetPasswordMessage] = useState('');
+  const [resetPasswordMessageType, setResetPasswordMessageType] = useState<'success' | 'error'>('success');
 
   const [statusMessage, setStatusMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -136,40 +138,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
   // Submit Handler: Create User
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name || !username || !password) {
+      setStatusMessage('Please fill in all required fields.');
+      return;
+    }
+
+    if (role === 'student' && (!dateOfBirth || !subLevel)) {
+      setStatusMessage('Students require Date of Birth and Education Category.');
+      return;
+    }
+
     try {
       setIsLoading(true);
       setStatusMessage('');
+      const newUserPayload = {
+        name,
+        username,
+        password,
+        role,
+        date_of_birth: role === 'student' ? dateOfBirth : undefined,
+        level: role === 'student' ? subLevel : undefined,
+      };
+
+      const result = await createUser(newUserPayload);
+      setStatusMessage(result.message || 'User created successfully!');
       
-      const formattedLevel = mainLevel && subLevel ? `${mainLevel} (${subLevel})` : undefined;
-
-      const userData = role === 'student' 
-        ? {
-            username,
-            name,
-            role: 'student' as const,
-            dateOfBirth: dateOfBirth || undefined,
-            level: formattedLevel,
-          }
-        : {
-            username,
-            password,
-            name,
-            role: role as 'therapist' | 'admin',
-          };
-
-      await createUser(userData);
-
-      setStatusMessage(`User "${username}" created successfully!`);
-      
+      setName('');
       setUsername('');
       setPassword('');
-      setName('');
       setDateOfBirth('');
-      setMainLevel('');
       setSubLevel('');
+      
       loadDashboardData();
     } catch (err: any) {
-      setStatusMessage(`Error creating user: ${err.message}`);
+      setStatusMessage(`Error: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -204,20 +206,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetPasswordUserId || !newPasswordInput) {
-      setStatusMessage('Select an account and enter a new password.');
+      setResetPasswordMessage('Select an account and enter a new password.');
+      setResetPasswordMessageType('error');
       return;
     }
 
     try {
       setIsLoading(true);
-      setStatusMessage('');
+      setResetPasswordMessage('');
       const result = await resetPassword(resetPasswordUserId, newPasswordInput);
-      setStatusMessage(result.message || 'Password reset successfully.');
+      setResetPasswordMessage(result.message || 'Password reset successfully.');
+      setResetPasswordMessageType('success');
 
       setResetPasswordUserId('');
       setNewPasswordInput('');
     } catch (err: any) {
-      setStatusMessage(`Error: ${err.message}`);
+      setResetPasswordMessage(`Error: ${err.message}`);
+      setResetPasswordMessageType('error');
     } finally {
       setIsLoading(false);
     }
@@ -615,6 +620,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
             >
               {isLoading ? "Resetting..." : "Reset Password"}
             </button>
+
+            {resetPasswordMessage && (
+              <div
+                className={`message message-${resetPasswordMessageType === 'error' ? 'error' : 'success'}`}
+                style={{ marginTop: "0.75rem", textAlign: "center" }}
+              >
+                {resetPasswordMessage}
+              </div>
+            )}
           </form>
         </section>
       </div>

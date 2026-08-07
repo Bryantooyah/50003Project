@@ -142,43 +142,44 @@ export default function WritingSampleForm({
   }
 
   return (
-    <section className="card">
-      <h2>Submit Student Writing Sample</h2>
-      <p className="muted">
+    <section className="card" style={{ height: "100%", display: "flex", flexDirection: "column", padding: "16px 20px" }}>
+      <h2 style={{ fontSize: "1.1rem", marginBottom: "0.2rem" }}>Submit Student Writing Sample</h2>
+      <p className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.5rem" }}>
         Upload a scanned writing sample to extract text automatically, or
         select a reference sample below, then review the transcription
         before analysis.
       </p>
 
       {selectedSampleFileName && (
-        <div className="selected-file-box">
+        <div className="selected-file-box" style={{ padding: "6px 12px", fontSize: "0.82rem", marginBottom: "0.5rem" }}>
           Using reference sample: <strong>{selectedSampleFileName}</strong>{" "}
           <span className="muted">(test data, not linked to this student's record)</span>
         </div>
       )}
 
-      <label htmlFor="sample-upload">Upload writing sample (optional)</label>
-      <div className="upload-zone">
+      <label htmlFor="sample-upload" style={{ margin: "4px 0 2px", fontSize: "0.85rem" }}>Upload writing sample (optional)</label>
+      <div className="upload-zone" style={{ padding: "8px 12px" }}>
         <input
           id="sample-upload"
           ref={fileInputRef}
           type="file"
           accept={ACCEPTED_UPLOAD_EXTENSIONS.join(",")}
           onChange={handleFileChange}
+          style={{ fontSize: "0.82rem" }}
         />
-        <p>Accepted formats: JPG, PNG, PDF</p>
+        <p style={{ margin: "2px 0 0", fontSize: "0.78rem" }}>Accepted formats: JPG, PNG, PDF</p>
       </div>
 
       {uploadError && <p className="message message-error">{uploadError}</p>}
 
       {uploadedFile && previewUrl && (
-        <div className="sample-preview">
-          <h3>{uploadedFile.name}</h3>
+        <div className="sample-preview" style={{ marginTop: "0.5rem" }}>
+          <h3 style={{ fontSize: "0.9rem" }}>{uploadedFile.name}</h3>
 
           {uploadedFile.type === "application/pdf" ? (
-            <iframe src={previewUrl} title={uploadedFile.name} className="sample-pdf" />
+            <iframe src={previewUrl} title={uploadedFile.name} className="sample-pdf" style={{ height: "100px" }} />
           ) : (
-            <img src={previewUrl} alt={uploadedFile.name} className="sample-image" />
+            <img src={previewUrl} alt={uploadedFile.name} className="sample-image" style={{ maxHeight: "100px", objectFit: "contain" }} />
           )}
         </div>
       )}
@@ -191,21 +192,22 @@ export default function WritingSampleForm({
 
       {ocrError && <p className="message message-warning">{ocrError}</p>}
 
-      <label htmlFor="writing-sample">OCR / extracted text</label>
+      <label htmlFor="writing-sample" style={{ margin: "8px 0 2px", fontSize: "0.85rem" }}>OCR / extracted text</label>
       <textarea
         id="writing-sample"
         value={sampleText}
         onChange={(event) => onSampleChange(event.target.value)}
         placeholder="Upload a scan to auto-extract text, or paste/type the student's writing sample here..."
+        style={{ minHeight: "85px", height: "95px", padding: "8px 12px", fontSize: "0.88rem" }}
       />
 
       {!selectedStudentId && (
-        <p className="message message-warning" style={{ marginTop: "1rem" }}>
+        <p className="message message-warning" style={{ marginTop: "0.5rem", padding: "6px 10px", fontSize: "0.82rem" }}>
           ⚠️ Please select a student before analyzing a writing sample.
         </p>
       )}
 
-      <div className="form-footer">
+      <div className="form-footer" style={{ marginTop: "auto", paddingTop: "1rem" }}>
         <span className={isShortSample ? "warning-text" : "muted"}>
           Word count: {wordCount}
           {isShortSample && " — short sample, therapist confirmation required"}

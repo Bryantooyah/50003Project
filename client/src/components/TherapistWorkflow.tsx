@@ -49,6 +49,7 @@ export default function TherapistWorkflow({
   const [backendStatus, setBackendStatus] = useState("Backend status unknown");
   const [isAnalysing, setIsAnalysing] = useState(false);
   const [isGeneratingRecommendations, setIsGeneratingRecommendations] = useState(false);
+  const [hasClickedGenerateRecs, setHasClickedGenerateRecs] = useState(false);
   const [isSavingAnalysis, setIsSavingAnalysis] = useState(false);
   const [isAnalysisSaved, setIsAnalysisSaved] = useState(false);
 
@@ -134,6 +135,7 @@ export default function TherapistWorkflow({
       setAnalysis(null);
       setRecommendations([]);
       setIsAnalysisSaved(false);
+      setHasClickedGenerateRecs(false);
       announce("Switched student. Previous sample and results were cleared.");
     }
   }
@@ -191,6 +193,7 @@ export default function TherapistWorkflow({
       });
 
       setRecommendations([]);
+      setHasClickedGenerateRecs(false);
       setIsAnalysisSaved(false);
       announce("Analysis completed successfully.", "success");
     } catch {
@@ -211,10 +214,16 @@ export default function TherapistWorkflow({
 
     try {
       setIsGeneratingRecommendations(true);
+      setHasClickedGenerateRecs(true);
       announce("Generating recommendations...");
       const generated = await generateRecommendations(analysis);
       setRecommendations(generated);
-      announce("Intervention recommendations generated.", "success");
+      
+      if (generated.length === 0 || (analysis.errors && analysis.errors.length === 0)) {
+        announce("No recommendations generated — no error patterns detected.", "info");
+      } else {
+        announce("Intervention recommendations generated.", "success");
+      }
     } catch {
       announce("Failed to generate recommendations.", "error");
     } finally {
@@ -267,24 +276,26 @@ export default function TherapistWorkflow({
     } finally {
       setIsSavingAnalysis(false);
     }
-  }
+  };
+
+  const [activeTab, setActiveTab] = useState<"analysis" | "recommendations" | "progress">("analysis");
 
   return (
     <main>
       <Navbar role="therapist" onLogout={onLogout} />
 
-      <section className="hero">
+      <section className="hero" style={{ padding: "0.85rem 2rem", minHeight: "auto" }}>
         <div>
-          <h2 style={{ fontSize: "1.75rem", marginBottom: "0.25rem" }}>
+          <h2 style={{ fontSize: "1.35rem", marginBottom: "0.15rem" }}>
             Welcome back, {currentUser?.name || "Therapist"}
           </h2>
-          <p style={{ opacity: 0.9, fontSize: "1rem", margin: 0 }}>
+          <p style={{ opacity: 0.85, fontSize: "0.88rem", margin: 0 }}>
             Error Pattern Analyzer &amp; Intervention Recommendation Engine
           </p>
         </div>
       </section>
 
-      <div className="page-body">
+      <div className="page-body" style={{ paddingTop: "1rem" }}>
         {backendStatus ? (
           <div className="message message-error">
             {backendStatus}
@@ -293,40 +304,199 @@ export default function TherapistWorkflow({
           <div className={`message message-${messageTone}`}>{message}</div>
         ) : (
           !selectedStudentId && (
-            <div className="message message-warning">
+            <div className="message message-warning" style={{ padding: "8px 14px", marginBottom: "0.75rem", fontSize: "0.88rem" }}>
               ⚠️ Please select a student to begin.
             </div>
           )
         )}
 
-        <div className="layout">
-          <div className="left-column">
-            <StudentSelector
-              students={students}
-              selectedStudentId={selectedStudentId}
-              onSelect={handleSelectStudent}
-            />
+        {/* Global Top Bar: Student Selection */}
+        <section className="card" style={{ marginBottom: "0.85rem", padding: "12px 20px" }}>
+          <StudentSelector
+            students={students}
+            selectedStudentId={selectedStudentId}
+            onSelect={handleSelectStudent}
+          />
+        </section>
 
-            <WritingSampleBank
-              manifest={writingSampleManifest}
-              selectedSampleId={selectedSampleId}
-              onSelectSample={handleSelectWritingSample}
-            />
+        {/* Tab Navigation */}
+        <div className="therapist-tabs" style={{ marginBottom: "0.85rem", paddingBottom: "6px" }}>
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === "analysis" ? "active" : ""}`}
+            onClick={() => setActiveTab("analysis")}
+          >
+            Writing Sample &amp; Analysis
+          </button>
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === "recommendations" ? "active" : ""}`}
+            onClick={() => setActiveTab("recommendations")}
+          >
+            Intervention Recommendations
+            {recommendations.length > 0 && <span className="tab-badge">{recommendations.length}</span>}
+          </button>
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === "progress" ? "active" : ""}`}
+            onClick={() => setActiveTab("progress")}
+          >
+            Progress &amp; History
+            {analysisArray.length > 0 && <span className="tab-badge">{analysisArray.length}</span>}
+          </button>
+        </div>
 
-            <WritingSampleForm
-              sampleText={sampleText}
-              selectedStudentId={selectedStudentId}
-              selectedSampleFileName={selectedSampleFileName}
-              isAnalysing={isAnalysing}
-              onSampleChange={setSampleText}
-              onAnalyse={handleAnalyseSample}
-            />
+        {/* TAB 1: Writing Sample & Analysis */}
+        {activeTab === "analysis" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            {/* Input Row: Writing Sample Bank & Submit Form side-by-side (equal height stretch) */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "1.5rem", alignItems: "stretch" }}>
+              <WritingSampleBank
+                manifest={writingSampleManifest}
+                selectedSampleId={selectedSampleId}
+                onSelectSample={handleSelectWritingSample}
+              />
+
+              <WritingSampleForm
+                sampleText={sampleText}
+                selectedStudentId={selectedStudentId}
+                selectedSampleFileName={selectedSampleFileName}
+                isAnalysing={isAnalysing}
+                onSampleChange={setSampleText}
+                onAnalyse={async () => {
+                  await handleAnalyseSample();
+                }}
+              />
+            </div>
+
+            {/* Analysis Results View Below */}
+            <div>
+              {!analysis ? (
+                <section className="card" style={{ textAlign: "center", padding: "3rem 2rem" }}>
+                  <h2 style={{ marginBottom: "0.5rem" }}>No Analysis Generated Yet</h2>
+                  <p className="muted" style={{ maxWidth: "480px", margin: "0 auto" }}>
+                    Select a student, choose or paste a writing sample above, and click <strong>Analyze Writing Sample</strong>.
+                  </p>
+                </section>
+              ) : (
+                <>
+                  <p className="results-for">
+                    Showing results for{" "}
+                    <strong>
+                      {students.find((student) => student.id === analysis.studentId)
+                        ?.name ?? "unknown student"}
+                    </strong>
+                  </p>
+
+                  <ErrorPatternDashboard analysis={analysis} />
+                  <ErrorTable errors={analysis.errors} />
+
+                  {analysis.llmOutput && (
+                    <section className="card">
+                      <h2>AI Analysis Notes</h2>
+                      <p className="muted">
+                        Response generated from the backend LLM analysis endpoint.
+                      </p>
+                      <div className="llm-output">{analysis.llmOutput}</div>
+                    </section>
+                  )}
+
+                  <section className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+                    <div>
+                      <h3 style={{ margin: 0 }}>Next Step: Recommendations</h3>
+                      <p className="muted" style={{ margin: 0, fontSize: "0.9rem" }}>Generate evidence-based intervention strategies for this student.</p>
+                    </div>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        handleGenerateRecommendations();
+                        setActiveTab("recommendations");
+                      }}
+                      disabled={isGeneratingRecommendations}
+                    >
+                      View Intervention Recommendations ➔
+                    </button>
+                  </section>
+                </>
+              )}
+            </div>
           </div>
+        )}
 
-          <div className="right-column">
-            {analysisArray.length > 2 && (
-              <LongitudinalView analysis={analysisArray} />)}
-            {analysisArray.length < 3 && (
+        {/* TAB 2: Intervention Recommendations */}
+        {activeTab === "recommendations" && (
+          <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+            <section className="card">
+              <h2>Intervention Recommendations</h2>
+              <p className="muted">
+                Recommendations are generated based on detected error categories and severity.
+              </p>
+
+              <button
+                className="btn btn-primary"
+                onClick={handleGenerateRecommendations}
+                disabled={isGeneratingRecommendations || !analysis}
+                style={{ marginBottom: "1.5rem" }}
+              >
+                {isGeneratingRecommendations
+                  ? "Generating recommendations..."
+                  : hasClickedGenerateRecs && recommendations.length === 0
+                    ? "No recommendations generated"
+                    : recommendations.length > 0
+                      ? "✓ Recommendations generated (Click to regenerate)"
+                      : "Generate recommendations"}
+              </button>
+
+              {!analysis && (
+                <div className="message message-warning" style={{ marginTop: "1rem" }}>
+                  ⚠️ Run an analysis on a writing sample first to generate intervention recommendations.
+                </div>
+              )}
+
+              {hasClickedGenerateRecs && !isGeneratingRecommendations && recommendations.length === 0 && analysis && (
+                <div className="message message-info" style={{ marginTop: "1rem", textAlign: "center", padding: "1.25rem" }}>
+                  No recommendations generated. No error patterns were detected in this student's writing sample.
+                </div>
+              )}
+
+              {recommendations.length > 0 && (
+                <div className="recommendation-list">
+                  {recommendations.map((recommendation) => (
+                    <RecommendationCard
+                      key={recommendation.id}
+                      recommendation={recommendation}
+                      onUpdateStatus={handleUpdateRecommendationStatus}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {analysis && (
+              <section className="card" style={{ marginTop: "1.5rem" }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSaveAnalysis}
+                  disabled={isSavingAnalysis || isAnalysisSaved}
+                  style={{ width: "100%" }}
+                >
+                  {isSavingAnalysis
+                    ? "Saving analysis..."
+                    : isAnalysisSaved
+                      ? "✓ Analysis saved"
+                      : "Save analysis"}
+                </button>
+              </section>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: Progress & History */}
+        {activeTab === "progress" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+            {analysisArray.length > 2 ? (
+              <LongitudinalView analysis={analysisArray} />
+            ) : (
               <section className="card">
                 <h2>Not enough analysis performed yet</h2>
                 <p>
@@ -337,86 +507,13 @@ export default function TherapistWorkflow({
                 </p>
               </section>
             )}
-            {!analysis && (
-              <History
-                students={students}
-                selectedStudentId={selectedStudentId}
-              />
-            )}
 
-            {analysis && (
-              <>
-                <p className="results-for">
-                  Showing results for{" "}
-                  <strong>
-                    {students.find((student) => student.id === analysis.studentId)
-                      ?.name ?? "unknown student"}
-                  </strong>
-                </p>
-
-                <ErrorPatternDashboard analysis={analysis} />
-                <ErrorTable errors={analysis.errors} />
-
-                {analysis.llmOutput && (
-                  <section className="card">
-                    <h2>AI analysis notes</h2>
-                    <p className="muted">
-                      Response generated from the backend LLM analysis
-                      endpoint.
-                    </p>
-                    <div className="llm-output">{analysis.llmOutput}</div>
-                  </section>
-                )}
-
-                <section className="card">
-                  <h2>Intervention Recommendations</h2>
-                  <p className="muted">
-                    Recommendations are generated based on detected error
-                    categories and severity.
-                  </p>
-
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleGenerateRecommendations}
-                    disabled={isGeneratingRecommendations}
-                  >
-                    {isGeneratingRecommendations
-                      ? "Generating recommendations..."
-                      : recommendations.length > 0
-                        ? "✓ Recommendations generated (Click to regenerate)"
-                        : "Generate recommendations"}
-                  </button>
-
-                  {recommendations.length > 0 && (
-                    <div className="recommendation-list">
-                      {recommendations.map((recommendation) => (
-                        <RecommendationCard
-                          key={recommendation.id}
-                          recommendation={recommendation}
-                          onUpdateStatus={handleUpdateRecommendationStatus}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </section>
-
-                <section className="card">
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleSaveAnalysis}
-                    disabled={isSavingAnalysis || isAnalysisSaved}
-                  >
-                    {isSavingAnalysis
-                      ? "Saving analysis..."
-                      : isAnalysisSaved
-                        ? "✓ Analysis saved"
-                        : "Save analysis"}
-                  </button>
-                </section>
-              </>
-            )}
+            <History
+              students={students}
+              selectedStudentId={selectedStudentId}
+            />
           </div>
-        </div>
+        )}
       </div>
     </main>
   );
