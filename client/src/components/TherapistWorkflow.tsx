@@ -105,7 +105,7 @@ export default function TherapistWorkflow({
 
   async function handleSelectStudent(studentId: string) {
     if (studentId === selectedStudentId) return;
-    if (studentId == ''){
+    if (studentId == '') {
       setSelectedStudentId(studentId);
       setAnalysisArray([]);
       return;
@@ -242,8 +242,14 @@ export default function TherapistWorkflow({
       </section>
 
       <div className="page-body">
-        {message && (
+        {message ? (
           <div className={`message message-${messageTone}`}>{message}</div>
+        ) : (
+          !selectedStudentId && (
+            <div className="message message-warning">
+              ⚠️ Please select a student to begin.
+            </div>
+          )
         )}
 
         <div className="layout">
@@ -271,14 +277,14 @@ export default function TherapistWorkflow({
           </div>
 
           <div className="right-column">
-            {analysisArray.length > 2  &&(
+            {analysisArray.length > 2 && (
               <LongitudinalView analysis={analysisArray} />)}
-              {analysisArray.length < 3 && (
-                <section className="card">
+            {analysisArray.length < 3 && (
+              <section className="card">
                 <h2>Not enough analysis performed yet</h2>
                 <p>Please submit document/text and perform analysis</p>
-                </section>
-              )}
+              </section>
+            )}
             {!analysis && (
               <History
                 students={students}
@@ -311,7 +317,7 @@ export default function TherapistWorkflow({
                 )}
 
                 <section className="card">
-                  <h2>Proceed to UC3: Intervention recommendations</h2>
+                  <h2>Intervention Recommendations</h2>
                   <p className="muted">
                     Recommendations are generated based on detected error
                     categories and severity.

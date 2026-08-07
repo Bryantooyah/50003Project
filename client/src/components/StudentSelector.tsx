@@ -29,6 +29,11 @@ export default function StudentSelector({
           </option>
         ))}
       </select>
+      {!selectedStudentId && (
+        <p className="message message-warning" style={{ marginTop: "0.75rem" }}>
+          ⚠️ Please select a student to begin.
+        </p>
+      )}
     </section>
   );
 }

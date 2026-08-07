@@ -199,6 +199,12 @@ export default function WritingSampleForm({
         placeholder="Upload a scan to auto-extract text, or paste/type the student's writing sample here..."
       />
 
+      {!selectedStudentId && (
+        <p className="message message-warning" style={{ marginTop: "1rem" }}>
+          ⚠️ Please select a student before analyzing a writing sample.
+        </p>
+      )}
+
       <div className="form-footer">
         <span className={isShortSample ? "warning-text" : "muted"}>
           Word count: {wordCount}
