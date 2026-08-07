@@ -129,6 +129,49 @@ next to source). Current coverage is UC1 only:
 
 **Not covered yet:** UC2–UC5 have no tests at all.
 
+## Deploying
+
+A [`render.yaml`](render.yaml) Blueprint at the repo root provisions all
+three pieces on [Render](https://render.com) in one go: the Express API
+(`dial-backend`), a managed Postgres (`dial-db`), and the static Vite build
+(`dial-frontend`). To deploy:
+
+1. Push this repo to GitHub, then on Render: **New +** → **Blueprint**,
+   point it at the repo.
+2. Render provisions all three resources from `render.yaml`. Fill in the two
+   secrets it prompts for (not stored in the YAML, so they're never
+   committed): `OPENAI_API_KEY` (use a fresh key, not your local dev one)
+   and `SEED_ADMIN_PASSWORD`.
+3. After the first deploy, check the real `dial-backend`/`dial-frontend`
+   URLs Render assigned — if they differ from the `render.yaml` placeholders
+   (`https://dial-backend.onrender.com` / `https://dial-frontend.onrender.com`),
+   update the `CORS_ORIGIN` env var on `dial-backend` and `VITE_API_BASE_URL`
+   on `dial-frontend` to match, then redeploy both.
+4. Apply the schema and seed the admin account against the live DB — same
+   scripts as local setup, just pointed at Render's **External Database
+   URL** for `dial-db` (shown in its dashboard) instead of localhost:
+
+   ```bash
+   cd server
+   DATABASE_URL="<external URL>" DATABASE_SSL=true SEED_ADMIN_PASSWORD="<chosen password>" npm run db:apply
+   DATABASE_URL="<external URL>" DATABASE_SSL=true SEED_ADMIN_PASSWORD="<chosen password>" npm run db:seed
+   ```
+
+5. Verify: `curl https://<dial-backend-url>/api/health` returns
+   `{"status":"ok","db":"connected"}`, then log in on the frontend URL as
+   the seeded admin.
+
+Render's free tier idles down and takes ~30-60s to wake on the first
+request — fine day-to-day, but worth temporarily bumping `dial-backend`
+(and `dial-db` if it's also idle) to the cheapest Starter plan right before
+a live demo so there's no cold-start delay in front of an audience. Scale
+back down (or delete the services) afterward.
+
+`CORS_ORIGIN` and `DATABASE_SSL` are the two env vars this setup added
+beyond local dev — locally, leave both unset (`server/src/index.ts` and
+`server/src/db/index.ts` default to the existing localhost/no-SSL
+behaviour).
+
 ## Using the database
 
 ### Adding a user with a real hashed password
