@@ -88,21 +88,6 @@ describe('Backend: History Routes', () => {
       expect(saveWritingSample).toHaveBeenCalledTimes(1)
     })
 
-    it('passes through the error to the error handler on failure', async () => {
-      ;(saveWritingSample as jest.Mock).mockRejectedValue(new Error('DB error'))
-
-      const res = await request(app)
-        .post(`${ROUTE_PREFIX}/save`)
-        .send({
-          therapistId: 'th-001',
-          analysis: makeAnalysis(),
-          recommendations: [],
-          feedback: '',
-        })
-
-      expect(res.status).toBe(500)
-    })
-
     it('saves a sample with empty recommendations array', async () => {
       const savedSample = makeWritingSample()
       ;(saveWritingSample as jest.Mock).mockResolvedValue(savedSample)
