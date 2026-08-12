@@ -4,6 +4,8 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/tests/setupTests.ts'],
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '\\?url$': '<rootDir>/tests/pdfjsMock.js',
+    '^pdfjs-dist$': '<rootDir>/tests/pdfjsMock.js',
   },
   transform: {
     '^.+\\.(ts|tsx)$': [
@@ -20,7 +22,7 @@ module.exports = {
            moduleResolution: 'node',
            target: 'es2023',
            lib: ['es2023', 'dom'],
-           types: ['jest', 'node'],
+           types: ['jest', 'node', 'vite/client'],
          },
       },
     ],
