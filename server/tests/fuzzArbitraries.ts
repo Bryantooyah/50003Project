@@ -35,7 +35,9 @@ export const fuzzedUserPayload = () =>
       name: fc.oneof(fc.string(), wildValue()),
       role: fc.oneof(fc.constantFrom('student', 'therapist', 'admin'), wildValue()),
       dateOfBirth: fc.oneof(
-        fc.date({ min: new Date('1950-01-01'), max: new Date('2030-01-01') }).map((d) => d.toISOString().slice(0, 10)),
+        fc
+          .date({ min: new Date('1950-01-01'), max: new Date('2030-01-01'), noInvalidDate: true })
+          .map((d) => d.toISOString().slice(0, 10)),
         fc.constantFrom('not-a-date', '9999-99-99', '2999-01-01', ''),
         wildValue()
       ),
