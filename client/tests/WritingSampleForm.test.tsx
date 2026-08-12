@@ -57,6 +57,28 @@ describe('Frontend: UC2 Writing Sample Form', () => {
     ).toBeInTheDocument()
   })
 
+  it('UC2-U3: rejects an unsupported file type with a clear message', async () => {
+    render(<FormWrapper />)
+
+    const fileInput = document.querySelector('#sample-upload') as HTMLInputElement
+    const badFile = new File(['not a real document'], 'notes.txt', { type: 'text/plain' })
+
+    // userEvent.upload() respects the input's accept attribute and will
+    // silently refuse to attach a non-matching file, which means the
+    // change handler never fires and this test would falsely pass for the
+    // wrong reason. fireEvent.change bypasses that browser level filtering,
+    // which is exactly what's needed here: real users can still select a
+    // mismatched file via "All files" in the OS picker, or drag and drop
+    // one directly, so the app's own validation is what actually has to
+    // catch it, not the accept attribute.
+    fireEvent.change(fileInput, { target: { files: [badFile] } })
+
+    expect(
+      await screen.findByText(/is not a supported file type/i)
+    ).toBeInTheDocument()
+    expect(onAnalyseMock).not.toHaveBeenCalled()
+  })
+
   it('UC2-U4: updates textarea state on user edit', async () => {
     render(<FormWrapper />)
     const textarea = screen.getByRole('textbox', { name: /ocr/i }) as HTMLTextAreaElement
