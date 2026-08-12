@@ -10,7 +10,8 @@
     "db:seed": "ts-node src/db/seed.ts",
     "test": "jest --runInBand",
     "fuzz": "ts-node -P tsconfig.test.json scripts/fuzz.ts",
-    "fuzz:cleanup": "ts-node -P tsconfig.test.json scripts/fuzz.ts --cleanup-only"
+    "fuzz:cleanup": "ts-node -P tsconfig.test.json scripts/fuzz.ts --cleanup-only",
+    "seed:demo": "ts-node -P tsconfig.test.json scripts/seedDemoData.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
