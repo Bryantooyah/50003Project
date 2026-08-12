@@ -8,7 +8,9 @@
     "start": "node dist/index.js",
     "db:apply": "ts-node src/db/migrate.ts",
     "db:seed": "ts-node src/db/seed.ts",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "fuzz": "ts-node -P tsconfig.test.json scripts/fuzz.ts",
+    "fuzz:cleanup": "ts-node -P tsconfig.test.json scripts/fuzz.ts --cleanup-only"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -27,6 +29,7 @@
     "@types/node": "^22.7.4",
     "@types/pg": "^8.11.10",
     "@types/supertest": "^7.2.1",
+    "fast-check": "^4.9.0",
     "jest": "^30.4.2",
     "nodemon": "^3.1.7",
     "supertest": "^7.2.2",
