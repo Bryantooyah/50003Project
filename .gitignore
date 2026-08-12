@@ -5,4 +5,5 @@ build/
 *.env.local
 .DS_Store
 *.log
+server/scripts/fuzz-findings.jsonl
 .

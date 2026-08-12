@@ -129,6 +129,63 @@ next to source). Current coverage is UC1 only:
 
 **Not covered yet:** UC2–UC5 have no tests at all.
 
+## Robustness / Fuzz Testing
+
+Two complementary pieces, both using [fast-check](https://fast-check.dev/)
+(property-based/fuzz testing for TypeScript):
+
+**1. Fast property-based tests — run every time, as part of `npm test`.**
+[`server/tests/fuzz.test.ts`](server/tests/fuzz.test.ts) throws hundreds of
+malformed/adversarial inputs (wrong types, huge strings, unicode, SQL
+metacharacters, missing fields, extreme dates) at:
+
+- `hashPassword`/`verifyPassword` (round-trip property, plus a named test
+  documenting bcrypt's known 72-byte input truncation),
+- `applyRuleBasedFilters` (the pure rule-based step of the UC3 recommendation
+  engine — asserts it never throws on malformed `errors` arrays, and that
+  a missing/non-array `errors` field *does* throw, since `AnalysisResult` is
+  a compile-time-only TypeScript type with no runtime validation),
+- `POST /api/admin/users`, `POST /api/auth/login`, and
+  `POST /api/admin/reset-password` via `supertest` — asserting the app
+  never returns a 5xx and never crashes, regardless of how malformed the
+  request body is.
+
+Shared input generators live in
+[`server/tests/fuzzArbitraries.ts`](server/tests/fuzzArbitraries.ts) (not a
+test file itself — not matched by Jest's `testMatch`) so the fast suite and
+the long-running harness below fuzz with the same generators, not two
+drifting copies.
+
+**2. A long-running standalone HTTP fuzzer** —
+[`server/scripts/fuzz.ts`](server/scripts/fuzz.ts), not a Jest test. Fires
+continuous randomized requests at the DB-backed routes (`/api/admin/*`,
+`/api/auth/login`, `/api/health`) for a configurable duration, logging any
+5xx response, thrown exception, or request slower than 5s to
+`server/scripts/fuzz-findings.jsonl` (gitignored — generated output).
+Deliberately excludes `/api/analyse` and `/api/ocr`, since both call the
+real OpenAI API and a multi-hour run would be a real cost/rate-limit risk —
+those two are covered by the mocked property tests instead.
+
+```bash
+cd server
+npm run fuzz                          # quick 30s smoke run (default)
+npm run fuzz -- --duration=3600       # the real pre-presentation run (1h)
+npm run fuzz:cleanup                  # safety net: removes any leftover fuzz-created rows
+```
+
+Fuzz-created accounts get a recognizable `fuzz-`-prefixed username; the
+harness also tracks every id it creates in-memory and deletes them all when
+it exits (normally, or via Ctrl+C). **Always run this against your local
+Docker Postgres** — same `DATABASE_URL` as `npm run dev`/`npm test` — never
+against the deployed Render database.
+
+**Findings so far:** a malformed (non-UUID) `userId` on
+`POST /api/admin/reset-password` reaches Postgres before any format check,
+so Postgres's raw `invalid input syntax for type uuid` error text ends up
+in the 400 response body (`server/src/routes/admin.ts`'s catch block
+returns `err.message` verbatim) — a minor info-disclosure quality issue,
+not a crash; noted here rather than fixed, since nothing crashes.
+
 ## Deploying
 
 A [`render.yaml`](render.yaml) Blueprint at the repo root provisions all
