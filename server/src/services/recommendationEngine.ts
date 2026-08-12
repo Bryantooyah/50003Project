@@ -24,7 +24,7 @@ export function applyRuleBasedFilters(
   const categoryCounts = analysis.errors.reduce((acc, err) => {
     acc[err.category] = (acc[err.category] ?? 0) + 1;
     return acc;
-  }, {} as Record<ErrorCategory, number>);
+  }, Object.create(null) as Record<ErrorCategory, number>);
 
   return Object.entries(categoryCounts)
     .map(([category, count]) => ({
@@ -82,7 +82,9 @@ export async function applyLLMReranking(
         content:
           `Student's detected errors:\n${sampleErrors}\n\n` +
           `Candidate strategies:\n${JSON.stringify(candidateList, null, 2)}\n\n` +
-          `Return the top-ranked strategies (at most one per targetCategory unless clearly warranted).`,
+          `Return the top-ranked strategies, covering every targetCategory that has ` +
+          `detected errors — include at least one recommendation per represented ` +
+          `category, and at most one per targetCategory unless clearly warranted.`,
       },
     ],
     text: {

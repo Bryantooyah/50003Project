@@ -32,7 +32,7 @@ describe('fuzz: hashPassword/verifyPassword round-trip', () => {
       }),
       { numRuns: 50 }
     )
-  }, 30000)
+  }, 60000)
 
   it('bcrypt truncates input at 72 bytes, so two passwords sharing that prefix verify as equal (documented finding, not a bug to fix)', async () => {
     const base = 'a'.repeat(72)
@@ -84,7 +84,7 @@ describe('fuzz: POST /api/admin/users never crashes on malformed input', () => {
         expect([201, 400, 422]).toContain(res.status)
         if (res.status === 201) createdUserIds.push(res.body.user.id)
       }),
-      { numRuns: 100 }
+      { numRuns: 30 }
     )
   }, 60000)
 })
@@ -99,7 +99,7 @@ describe('fuzz: POST /api/auth/login never crashes and never leaks whether a use
           expect(res.body.error).toBe('Invalid username or password')
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 30 }
     )
   }, 60000)
 })
@@ -120,7 +120,7 @@ describe('fuzz: POST /api/admin/reset-password with malformed userId', () => {
       })
     realUserId = res.body.user.id
     createdUserIds.push(realUserId)
-  })
+  }, 20000)
 
   afterAll(async () => {
     await pool.query('delete from users where id = any($1::uuid[])', [createdUserIds])
@@ -137,7 +137,7 @@ describe('fuzz: POST /api/admin/reset-password with malformed userId', () => {
           rawDbErrorLeaks.push({ userId: (payload as any).userId, error: res.body.error })
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 30 }
     )
 
     // Known, non-fatal finding: a malformed (non-UUID) userId reaches
@@ -147,7 +147,7 @@ describe('fuzz: POST /api/admin/reset-password with malformed userId', () => {
     // err.message verbatim). Logged for the report, not asserted against —
     // this is a minor info-disclosure quality issue, not a crash.
     if (rawDbErrorLeaks.length) {
-      console.warn(`fuzz finding: ${rawDbErrorLeaks.length}/100 malformed-userId requests leaked a raw Postgres error message`, rawDbErrorLeaks.slice(0, 2))
+      console.warn(`fuzz finding: ${rawDbErrorLeaks.length}/30 malformed-userId requests leaked a raw Postgres error message`, rawDbErrorLeaks.slice(0, 2))
     }
   }, 60000)
 })

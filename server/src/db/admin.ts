@@ -51,12 +51,16 @@ export async function createUserWithRole(params: CreateUserParams) {
     }
 
     await client.query('COMMIT');
+    client.release();
     return user;
   } catch (error) {
-    await client.query('ROLLBACK');
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      // Rollback can itself fail if the connection is already broken — ignored.
+    }
+    client.release(error as Error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 

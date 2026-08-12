@@ -179,12 +179,29 @@ it exits (normally, or via Ctrl+C). **Always run this against your local
 Docker Postgres** — same `DATABASE_URL` as `npm run dev`/`npm test` — never
 against the deployed Render database.
 
-**Findings so far:** a malformed (non-UUID) `userId` on
-`POST /api/admin/reset-password` reaches Postgres before any format check,
-so Postgres's raw `invalid input syntax for type uuid` error text ends up
-in the 400 response body (`server/src/routes/admin.ts`'s catch block
-returns `err.message` verbatim) — a minor info-disclosure quality issue,
-not a crash; noted here rather than fixed, since nothing crashes.
+**Findings so far:**
+
+- **Fixed** — `applyRuleBasedFilters` (`server/src/services/recommendationEngine.ts`)
+  used a plain `{}` object as a string-keyed category→count map. A fuzzed
+  error category equal to an inherited `Object.prototype` method name (e.g.
+  `"toString"`) read back the *inherited function*, not `undefined`, so the
+  `?? 0` fallback never triggered and the count silently corrupted via
+  string concatenation (`function + 1` → a string) instead of incrementing.
+  Fixed by seeding the accumulator with `Object.create(null)` instead.
+- **Fixed** — `createUserWithRole` (`server/src/db/admin.ts`) called plain
+  `client.release()` after a failed transaction, which returns the client
+  to the pool for reuse even if it's still in a bad state. Fuzzing malformed
+  `role`/`dateOfBirth` values against `POST /api/admin/users` triggered this
+  often enough to intermittently poison later, unrelated requests on the
+  same pool. Fixed by wrapping `ROLLBACK` in its own try/catch and calling
+  `client.release(error)` on the failure path, so a broken connection gets
+  evicted from the pool instead of recycled.
+- **Documented, not fixed** — a malformed (non-UUID) `userId` on
+  `POST /api/admin/reset-password` reaches Postgres before any format
+  check, so Postgres's raw `invalid input syntax for type uuid` error text
+  ends up in the 400 response body (`server/src/routes/admin.ts`'s catch
+  block returns `err.message` verbatim) — a minor info-disclosure quality
+  issue, not a crash.
 
 ## Deploying
 
