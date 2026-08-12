@@ -31,8 +31,13 @@ const SLOW_THRESHOLD_MS = 5000
 function parseArgs() {
   const args = process.argv.slice(2)
   const durationArg = args.find((a) => a.startsWith('--duration='))
-  const cleanupOnly = args.includes('--cleanup-only')
-  const parsed = durationArg ? Number(durationArg.split('=')[1]) : 30
+  const cleanupOnly = args.includes('--cleanup-only') || process.env.FUZZ_CLEANUP_ONLY === 'true'
+  // FUZZ_DURATION_SECONDS takes priority: `npm run fuzz -- --duration=N`
+  // relies on npm forwarding args after `--`, which is unreliable on
+  // Windows/PowerShell (silently drops them, script falls back to the 30s
+  // default with no error). The env var sidesteps that entirely.
+  const raw = process.env.FUZZ_DURATION_SECONDS ?? (durationArg ? durationArg.split('=')[1] : undefined)
+  const parsed = raw ? Number(raw) : 30
   const durationSeconds = Number.isFinite(parsed) && parsed > 0 ? parsed : 30
   return { durationSeconds, cleanupOnly }
 }

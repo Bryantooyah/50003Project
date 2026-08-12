@@ -81,10 +81,21 @@ routes for extended periods:
 
 ```bash
 cd server
-npm run fuzz                      # quick 30s smoke run
-npm run fuzz -- --duration=3600   # longer run (seconds)
-npm run fuzz:cleanup              # removes any leftover fuzz-created rows
+npm run fuzz                                       # quick 30s smoke run
+
+# PowerShell
+$env:FUZZ_DURATION_SECONDS=3600; npm run fuzz
+
+# bash
+FUZZ_DURATION_SECONDS=3600 npm run fuzz
+
+npm run fuzz:cleanup   # removes any leftover fuzz-created rows
 ```
+
+Duration is set via the `FUZZ_DURATION_SECONDS` env var, not
+`npm run fuzz -- --duration=3600` — npm doesn't reliably forward args after
+`--` to the underlying script on Windows/PowerShell (silently drops them,
+so the script quietly falls back to the 30s default with no error).
 
 Always run this against your local Docker Postgres, never the deployed
 database.
